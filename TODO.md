@@ -1,0 +1,2 @@
+- logging on our DO requests on supabase, with incoming question, return state, e.t.c., to improve page overtime - DONE
+- use new supabase user - todo
