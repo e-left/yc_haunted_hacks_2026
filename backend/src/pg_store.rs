@@ -8,6 +8,8 @@
 
 use std::{str::FromStr, time::Duration};
 
+use sqlx::types::Json;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{
@@ -19,7 +21,10 @@ use uuid::Uuid;
 use crate::{
     auth::{ApiKeyRecord, Scope},
     model::{RelayRequest, RequestStatus},
-    store::{CreateOutcome, Idempotency, Store, StoreError},
+    store::{
+        CreateOutcome, Finish, Idempotency, JobSnapshot, Store, StoreError, exhausted_reason,
+        plan_finish,
+    },
 };
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -75,15 +80,29 @@ fn row_to_request(row: &PgRow) -> Result<RelayRequest, StoreError> {
     Ok(RelayRequest {
         id: row.try_get("id").map_err(db_err)?,
         client_id: row.try_get("client_id").map_err(db_err)?,
-        status: RequestStatus::parse(&status)
-            .ok_or_else(|| StoreError(format!("unknown status in DB: {status}")))?,
+        status: parse_status(&status)?,
         question: row.try_get("question").map_err(db_err)?,
+        attempts: row.try_get("attempts").map_err(db_err)?,
+        status_reason: row.try_get("status_reason").map_err(db_err)?,
+        result: row
+            .try_get::<Option<Json<serde_json::Value>>, _>("result")
+            .map_err(db_err)?
+            .map(|j| j.0),
         created_at: row.try_get("created_at").map_err(db_err)?,
         updated_at: row.try_get("updated_at").map_err(db_err)?,
     })
 }
 
-const REQUEST_COLS: &str = "r.id, r.client_id, r.status, r.question, r.created_at, r.updated_at";
+const REQUEST_COLS: &str = "r.id, r.client_id, r.status, r.question, r.attempts, \
+    r.status_reason, r.result, r.created_at, r.updated_at";
+
+fn parse_status(s: &str) -> Result<RequestStatus, StoreError> {
+    RequestStatus::parse(s).ok_or_else(|| StoreError(format!("unknown status in DB: {s}")))
+}
+
+fn millis(d: Duration) -> f64 {
+    d.as_secs_f64() * 1000.0
+}
 
 #[async_trait]
 impl Store for PgStore {
@@ -213,6 +232,137 @@ impl Store for PgStore {
         .map_err(db_err)?
         .as_ref()
         .map(row_to_request)
+        .transpose()
+    }
+
+    async fn claim_next(
+        &self,
+        worker_id: &str,
+        lease: Duration,
+    ) -> Result<Option<RelayRequest>, StoreError> {
+        // Sweep: jobs out of attempts whose lease is gone (worker crashed) -> failed.
+        // The exhausted reason is built in Rust so both stores word it identically.
+        // The UPDATE re-checks every condition, so a race with another worker is harmless.
+        let exhausted = sqlx::query(
+            "SELECT id, attempts FROM lild.requests
+             WHERE status = 'pending' AND attempts >= max_attempts
+               AND (locked_until IS NULL OR locked_until < now())",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
+        for row in exhausted {
+            let id: Uuid = row.try_get("id").map_err(db_err)?;
+            let attempts: i32 = row.try_get("attempts").map_err(db_err)?;
+            sqlx::query(
+                "UPDATE lild.requests SET status = 'failed', status_reason = $2,
+                     locked_by = NULL, locked_until = NULL, updated_at = now()
+                 WHERE id = $1 AND status = 'pending'
+                   AND (locked_until IS NULL OR locked_until < now())",
+            )
+            .bind(id)
+            .bind(exhausted_reason(attempts))
+            .execute(&self.pool)
+            .await
+            .map_err(db_err)?;
+        }
+
+        // SKIP LOCKED: concurrent workers skip rows another worker is claiming right
+        // now instead of waiting, so each claim picks a different job.
+        let row = sqlx::query(&format!(
+            "WITH next AS (
+                 SELECT id FROM lild.requests
+                 WHERE status = 'pending' AND attempts < max_attempts
+                   AND next_attempt_at <= now()
+                   AND (locked_until IS NULL OR locked_until < now())
+                 ORDER BY next_attempt_at, created_at
+                 FOR UPDATE SKIP LOCKED
+                 LIMIT 1
+             )
+             UPDATE lild.requests AS r
+             SET locked_by = $1,
+                 locked_until = now() + ($2::float8 * interval '1 millisecond'),
+                 attempts = r.attempts + 1,
+                 updated_at = now()
+             FROM next WHERE r.id = next.id
+             RETURNING {REQUEST_COLS}"
+        ))
+        .bind(worker_id)
+        .bind(millis(lease))
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(db_err)?;
+        row.as_ref().map(row_to_request).transpose()
+    }
+
+    async fn finish_job(
+        &self,
+        id: Uuid,
+        worker_id: &str,
+        finish: Finish,
+    ) -> Result<Option<RequestStatus>, StoreError> {
+        let mut tx = self.pool.begin().await.map_err(db_err)?;
+        // Fencing: only the worker that holds the job may finish it.
+        let Some(row) = sqlx::query(
+            "SELECT attempts, max_attempts FROM lild.requests
+             WHERE id = $1 AND locked_by = $2 AND status = 'pending'
+             FOR UPDATE",
+        )
+        .bind(id)
+        .bind(worker_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?
+        else {
+            return Ok(None);
+        };
+        let attempts: i32 = row.try_get("attempts").map_err(db_err)?;
+        let max_attempts: i32 = row.try_get("max_attempts").map_err(db_err)?;
+        let plan = plan_finish(attempts, max_attempts, finish);
+
+        sqlx::query(
+            "UPDATE lild.requests SET
+                 status = $2, status_reason = $3, result = $4,
+                 last_error = COALESCE($5, last_error),
+                 next_attempt_at = CASE WHEN $6::float8 IS NULL THEN next_attempt_at
+                                        ELSE now() + ($6::float8 * interval '1 millisecond') END,
+                 locked_by = NULL, locked_until = NULL, updated_at = now()
+             WHERE id = $1",
+        )
+        .bind(id)
+        .bind(plan.status.as_str())
+        .bind(&plan.status_reason)
+        .bind(plan.result.clone().map(Json))
+        .bind(&plan.last_error)
+        .bind(plan.retry_after.map(millis))
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+        tx.commit().await.map_err(db_err)?;
+        Ok(Some(plan.status))
+    }
+
+    async fn inspect_job(&self, id: Uuid) -> Result<Option<JobSnapshot>, StoreError> {
+        let row = sqlx::query(
+            "SELECT status, attempts, max_attempts, locked_by, last_error, status_reason, next_attempt_at
+             FROM lild.requests WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(db_err)?;
+        row.map(|row| {
+            let status: String = row.try_get("status").map_err(db_err)?;
+            Ok(JobSnapshot {
+                status: parse_status(&status)?,
+                attempts: row.try_get("attempts").map_err(db_err)?,
+                max_attempts: row.try_get("max_attempts").map_err(db_err)?,
+                locked_by: row.try_get("locked_by").map_err(db_err)?,
+                last_error: row.try_get("last_error").map_err(db_err)?,
+                status_reason: row.try_get("status_reason").map_err(db_err)?,
+                next_attempt_at: row.try_get("next_attempt_at").map_err(db_err)?,
+            })
+        })
         .transpose()
     }
 }

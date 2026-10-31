@@ -5,8 +5,12 @@ use lild_backend::{
     auth::{ApiKeyRecord, Scope, is_valid_client_id},
     build_app,
     pg_store::PgStore,
+    pipeline::{Pipeline, StubPipeline},
     store::{MemoryStore, Store},
+    worker::{WorkerConfig, run_worker},
 };
+use std::time::Duration;
+use tokio::sync::watch;
 use tracing_subscriber::EnvFilter;
 
 /// Relay server.
@@ -15,6 +19,8 @@ use tracing_subscriber::EnvFilter;
 /// - `DATABASE_URL` unset: in-memory store (Phase 1 behavior, data lost on restart).
 /// - `LILD_API_KEYS="client_id:sha256hex,..."` keys are provisioned at startup. Existing
 ///   keys are never modified, so a revoked key stays revoked across restarts.
+/// - `LILD_WORKERS` background workers (default 2, `0` disables). Phase 3 uses the
+///   stub pipeline, so requests become `active` with a result marked `simulated`.
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -78,12 +84,61 @@ async fn main() {
         .unwrap_or_else(|e| fatal(&format!("bind {bind}: {e}")));
     tracing::info!(%bind, configured, newly_provisioned = provisioned, "relay listening");
 
+    let workers: usize = std::env::var("LILD_WORKERS")
+        .ok()
+        .map(|v| v.parse().unwrap_or_else(|_| fatal("LILD_WORKERS must be a number")))
+        .unwrap_or(2);
+    let pipeline: Arc<dyn Pipeline> = Arc::new(StubPipeline);
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+    let mut worker_handles = Vec::new();
+    for n in 0..workers {
+        let cfg = WorkerConfig::new(format!("worker-{}-{n}", std::process::id()));
+        cfg.validate().unwrap_or_else(|e| fatal(&e));
+        worker_handles.push(tokio::spawn(run_worker(
+            store.clone(),
+            pipeline.clone(),
+            cfg,
+            shutdown_rx.clone(),
+        )));
+    }
+    tracing::info!(workers, pipeline = "stub (simulated)", "workers started");
+
     axum::serve(listener, build_app(AppState { store }))
-        .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
-        })
+        .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap_or_else(|e| fatal(&format!("server error: {e}")));
+
+    // Stop workers. A job mid-flight keeps its lease and is retried after restart.
+    let _ = shutdown_tx.send(true);
+    let drain = async {
+        for h in worker_handles {
+            let _ = h.await;
+        }
+    };
+    if tokio::time::timeout(Duration::from_secs(10), drain).await.is_err() {
+        tracing::warn!("workers did not stop within 10s; exiting anyway");
+    }
+    tracing::info!("shutdown complete");
+}
+
+/// Resolves on Ctrl+C (SIGINT) or SIGTERM (what `kill`, Docker, and hosts send).
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        let _ = tokio::signal::ctrl_c().await;
+    };
+    #[cfg(unix)]
+    let term = async {
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut s) => {
+                s.recv().await;
+            }
+            Err(_) => std::future::pending::<()>().await,
+        }
+    };
+    #[cfg(not(unix))]
+    let term = std::future::pending::<()>();
+    tokio::select! { _ = ctrl_c => {}, _ = term => {} }
+    tracing::info!("shutdown signal received");
 }
 
 fn fatal(msg: &str) -> ! {

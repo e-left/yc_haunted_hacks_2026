@@ -59,3 +59,27 @@ phases/phase-2/check.sh     # or everything automated (uses the lild_test databa
 - `GET /v1/health` = process is up. `GET /v1/ready` = database reachable (503 if not).
 - Re-provisioning keys from `LILD_API_KEYS` on restart never un-revokes or changes an existing key.
 - Inspect data: `docker compose exec postgres psql -U lild -d lild -c 'select * from lild.requests'`
+
+## Phase 3: manual testing (worker + state machine)
+
+```bash
+phases/phase-3/server.sh    # terminal 1: Postgres + relay + 2 workers (LILD_WORKERS=N to change)
+phases/phase-3/smoke.sh     # terminal 2: phases 1-2 smoke + request goes pending -> active
+phases/phase-3/check.sh     # automated: tests + live smoke + kill -9 recovery + SIGTERM drain
+```
+
+State machine (enforced by a database trigger as well as Rust code):
+
+```text
+pending -> active | rejected | failed      active -> expired (Phase 6)
+```
+
+- **Lease:** a worker owns a claimed job until its lease expires (default 60s). A crashed
+  worker's job is reclaimed by another worker. `attempts` counts crashes too, so a job
+  that kills every worker still ends `failed` after 3 attempts.
+- **Fencing:** a worker that lost its lease can't overwrite the new owner's result.
+- **Timeout / panic / transient error:** retried with exponential backoff + jitter.
+  A permanent error fails immediately. Internal error text (`last_error`) is never sent to clients.
+- **Stub pipeline:** results carry `"simulated": true` until Phase 4-6 add the real pipeline.
+- Inspect the queue: `docker compose exec postgres psql -U lild -d lild -c
+  'select id, status, attempts, locked_by, last_error from lild.requests order by created_at desc limit 10'`

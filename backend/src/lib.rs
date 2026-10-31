@@ -5,8 +5,10 @@ pub mod auth;
 pub mod error;
 pub mod model;
 pub mod pg_store;
+pub mod pipeline;
 pub mod routes;
 pub mod store;
+pub mod worker;
 
 use std::sync::Arc;
 
