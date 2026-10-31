@@ -28,7 +28,7 @@
           </button>
         </form>
 
-        <button class="cart header-link" id="cart-button" type="button" aria-label="Basket unavailable in demo"><span class="cart-icon" aria-hidden="true">🛒</span><strong>Basket</strong></button>
+        <button class="cart header-link" id="cart-button" type="button" aria-label="Open basket, 0 items"><span class="cart-icon" aria-hidden="true">🛒</span><strong>Basket</strong><span class="cart-count" id="cart-count" hidden>0</span></button>
       </div>
 
       <nav class="header-nav" aria-label="Main navigation">
@@ -47,13 +47,15 @@
       </div>
     </aside>
 
+    <dialog id="cart-dialog" class="cart-dialog" aria-labelledby="cart-title"></dialog>
+
     <main id="app">
       <div class="loading">Loading Amazombie’s T-shirts…</div>
     </main>
 
     <footer class="site-footer">
       <span>amazombie <b>✦</b> dead simple shopping</span>
-      <span>Images and source links come from the original product listings. This is a local demo, not a live shop.</span>
+      <span>Images and source links come from the original product listings. Checkout places demo orders; no payment is collected.</span>
     </footer>
 
     <script type="module" src="app.js"></script>
