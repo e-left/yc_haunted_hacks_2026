@@ -1,4 +1,5 @@
 import { createCheckout } from './checkout.js';
+import { createSupabaseClient } from './supabase.js';
 
 const app = document.querySelector('#app');
 const searchInput = document.querySelector('#search-input');
@@ -193,7 +194,7 @@ function renderProduct() {
           <p>Demo checkout · no payment is collected.</p>
         </section>
 
-        <section class="product-details" id="product-details"><h2>Product details</h2><div class="rule"></div><h3>Top highlights</h3><ul>${product.highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul><dl><div><dt>Brand</dt><dd>${escapeHtml(product.brand)}</dd></div><div><dt>Color</dt><dd>${escapeHtml(product.color)}</dd></div><div><dt>Fabric</dt><dd>${escapeHtml(product.fabric)}</dd></div><div><dt>Fit</dt><dd>${escapeHtml(product.fit)}</dd></div><div><dt>ASIN</dt><dd>${escapeHtml(product.asin)}</dd></div></dl><p class="source-note">${escapeHtml(product.priceBasis)}. Stock is not live; checkout creates a local demo order.</p></section>
+        <section class="product-details" id="product-details"><h2>Product details</h2><div class="rule"></div><h3>Top highlights</h3><ul>${product.highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul><dl><div><dt>Brand</dt><dd>${escapeHtml(product.brand)}</dd></div><div><dt>Color</dt><dd>${escapeHtml(product.color)}</dd></div><div><dt>Fabric</dt><dd>${escapeHtml(product.fabric)}</dd></div><div><dt>Fit</dt><dd>${escapeHtml(product.fit)}</dd></div><div><dt>ASIN</dt><dd>${escapeHtml(product.asin)}</dd></div></dl><p class="source-note">${escapeHtml(product.priceBasis)}. Stock is not live; checkout creates a demo order.</p></section>
       </section>
     </div>
     <section class="browse-section" id="browse" aria-label="Scrollable T-shirt catalog">
@@ -321,12 +322,29 @@ document.querySelector('#dismiss-notice').addEventListener('click', () => { noti
 document.querySelector('#explore-catalog').addEventListener('click', () => { notice.hidden = true; goHome(); document.querySelector('#results')?.scrollIntoView({ behavior: 'smooth' }); });
 
 try {
+  let supabase = createSupabaseClient();
   const response = await fetch('data/products.json');
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const catalog = await response.json();
   products = catalog.products;
   if (!Array.isArray(products) || products.length === 0) throw new Error('No demo products found');
-  checkout = createCheckout(products, chooseProduct);
+  if (supabase) {
+    try {
+      const remoteRows = await supabase.catalog();
+      if (!remoteRows.length || remoteRows.some((product) =>
+        !product.asin || !product.name || !product.image ||
+        !Array.isArray(product.sizes) || !product.sizes.length ||
+        !Array.isArray(product.highlights) || !Number.isFinite(product.priceUsd)
+      )) throw new Error('Supabase returned an incomplete Amazombie catalog');
+      products = remoteRows;
+    } catch (error) {
+      console.error('Supabase catalog unavailable:', error);
+      supabase = null;
+      notice.querySelector('p').textContent = 'Supabase is unavailable, so Amazombie is using its local demo catalog and checkout. Check the project key and database migration.';
+      notice.hidden = false;
+    }
+  }
+  checkout = createCheckout(products, chooseProduct, supabase);
   const params = new URLSearchParams(location.search);
   const requestedAsin = params.get('asin');
   selectedAsin = products.some((product) => product.asin === requestedAsin) ? requestedAsin : null;

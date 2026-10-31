@@ -477,6 +477,7 @@ a:hover { color: #c45500; text-decoration: underline; }
 .order-totals > div { display: flex; justify-content: space-between; gap: 12px; }
 .order-totals .order-total { margin-top: 3px; padding-top: 15px; border-top: 1px solid #dfe7dc; font-size: 20px; font-weight: 800; }
 .checkout-disclaimer { margin: 22px 0 16px; padding: 12px 14px; border-left: 3px solid #79b45b; border-radius: 4px; background: #f1f8ed; color: #4b5d4a; font-size: 12px; line-height: 1.4; }
+.checkout-error { margin: 14px 0 0; padding: 10px 12px; border-radius: 6px; background: #fff1f0; color: #9d211b; font-size: 13px; }
 .checkout-primary, .checkout-secondary { display: block; width: 100%; min-height: 45px; margin-top: 12px; border: 0; border-radius: 28px; font-weight: 700; }
 .checkout-primary { background: var(--lime); color: var(--ink); }
 .checkout-primary:hover { background: var(--lime-dark); }

@@ -16,7 +16,7 @@ function writeStored(key, value) {
   catch { /* The checkout still works when browser storage is unavailable. */ }
 }
 
-export function createCheckout(products, onSelectProduct) {
+export function createCheckout(products, onSelectProduct, supabase = null) {
   const dialog = document.querySelector('#cart-dialog');
   const basketButton = document.querySelector('#cart-button');
   const basketCount = document.querySelector('#cart-count');
@@ -26,6 +26,7 @@ export function createCheckout(products, onSelectProduct) {
     const product = byAsin.get(item.asin);
     return product && product.sizes.includes(item.size) && Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 10 && Number.isFinite(product.priceUsd);
   });
+  let submitting = false;
 
   const itemCount = () => cart.reduce((count, item) => count + item.quantity, 0);
   const totalCents = () => cart.reduce((total, item) => total + Math.round(byAsin.get(item.asin).priceUsd * 100) * item.quantity, 0);
@@ -63,25 +64,33 @@ export function createCheckout(products, onSelectProduct) {
 
   function openCheckout() {
     if (!cart.length) { openCart(); return; }
-    shell('Checkout', `<div class="checkout-content"><button class="checkout-back" type="button" data-cart-action="cart">← Back to basket</button><form id="checkout-form"><p class="checkout-disclaimer">Demo checkout · no payment is collected. Delivery details are used only for this confirmation and are not saved.</p><h3>Delivery details</h3><div class="checkout-fields"><label class="field-wide">Full name<input name="fullName" autocomplete="name" required maxlength="80" placeholder="Alex Shopper" /></label><label class="field-wide">Email<input name="email" type="email" autocomplete="email" required maxlength="120" placeholder="alex@example.com" /></label><label class="field-wide">Street address<input name="street" autocomplete="street-address" required maxlength="120" placeholder="123 Main Street" /></label><label>City<input name="city" autocomplete="address-level2" required maxlength="80" /></label><label>State / region<input name="region" autocomplete="address-level1" required maxlength="80" /></label><label>Postal code<input name="postal" autocomplete="postal-code" required maxlength="20" /></label><label>Country<input name="country" autocomplete="country-name" required maxlength="80" value="United States" /></label></div><h3>Order summary</h3><ul class="checkout-summary">${cart.map((item) => `<li><span>${escapeHtml(productFor(item).shortName)} · ${escapeHtml(item.size)} × ${item.quantity}</span><strong>${money(Math.round(productFor(item).priceUsd * 100) * item.quantity)}</strong></li>`).join('')}</ul>${orderTotals()}<button class="checkout-primary" type="submit">Place demo order</button></form></div>`);
+    shell('Checkout', `<div class="checkout-content"><button class="checkout-back" type="button" data-cart-action="cart">← Back to basket</button><form id="checkout-form"><p class="checkout-disclaimer">Demo checkout · no payment is collected. Delivery details are used only for this confirmation and are not saved. ${supabase ? 'Only the selected items and sample total are saved in Supabase.' : 'The order is saved in this browser.'}</p><h3>Delivery details</h3><div class="checkout-fields"><label class="field-wide">Full name<input name="fullName" autocomplete="name" required maxlength="80" placeholder="Alex Shopper" /></label><label class="field-wide">Email<input name="email" type="email" autocomplete="email" required maxlength="120" placeholder="alex@example.com" /></label><label class="field-wide">Street address<input name="street" autocomplete="street-address" required maxlength="120" placeholder="123 Main Street" /></label><label>City<input name="city" autocomplete="address-level2" required maxlength="80" /></label><label>State / region<input name="region" autocomplete="address-level1" required maxlength="80" /></label><label>Postal code<input name="postal" autocomplete="postal-code" required maxlength="20" /></label><label>Country<input name="country" autocomplete="country-name" required maxlength="80" value="United States" /></label></div><h3>Order summary</h3><ul class="checkout-summary">${cart.map((item) => `<li><span>${escapeHtml(productFor(item).shortName)} · ${escapeHtml(item.size)} × ${item.quantity}</span><strong>${money(Math.round(productFor(item).priceUsd * 100) * item.quantity)}</strong></li>`).join('')}</ul>${orderTotals()}<p class="checkout-error" role="alert" hidden></p><button class="checkout-primary" type="submit">Place demo order</button></form></div>`);
   }
 
-  function completeOrder(name) {
-    const order = {
+  function completeOrder(name, remoteOrder = null) {
+    const order = remoteOrder ? {
+      id: `AZ-${remoteOrder.id.slice(0, 8).toUpperCase()}`,
+      placedAt: remoteOrder.placedAt,
+      items: cart.map(({ asin, size, quantity }) => ({ asin, size, quantity })),
+      totalCents: remoteOrder.totalCents
+    } : {
       id: `AZ-${Date.now().toString(36).toUpperCase()}`,
       placedAt: new Date().toISOString(),
       items: cart.map(({ asin, size, quantity }) => ({ asin, size, quantity })),
       totalCents: totalCents()
     };
-    const storedOrders = readStored(ORDERS_KEY, []);
-    writeStored(ORDERS_KEY, [...(Array.isArray(storedOrders) ? storedOrders : []).slice(-19), order]);
+    if (!remoteOrder) {
+      const storedOrders = readStored(ORDERS_KEY, []);
+      writeStored(ORDERS_KEY, [...(Array.isArray(storedOrders) ? storedOrders : []).slice(-19), order]);
+    }
     cart = [];
     saveCart();
     const quantity = order.items.reduce((count, item) => count + item.quantity, 0);
-    shell('Order placed', `<div class="checkout-content order-confirmation"><span class="confirmation-icon" aria-hidden="true">✓</span><h3>You're all set, ${escapeHtml(name.split(/\s+/)[0])}.</h3><p>Your demo order <strong>${order.id}</strong> is confirmed.</p><div class="confirmation-total"><span>${quantity} ${quantity === 1 ? 'item' : 'items'}</span><strong>${money(order.totalCents)}</strong></div><p class="checkout-disclaimer">This order is saved only in this browser. No payment was charged and no delivery request was sent.</p><button class="checkout-primary" type="button" data-cart-action="close">Continue shopping</button></div>`);
+    shell('Order placed', `<div class="checkout-content order-confirmation"><span class="confirmation-icon" aria-hidden="true">✓</span><h3>You're all set, ${escapeHtml(name.split(/\s+/)[0])}.</h3><p>Your demo order <strong>${order.id}</strong> is confirmed.</p><div class="confirmation-total"><span>${quantity} ${quantity === 1 ? 'item' : 'items'}</span><strong>${money(order.totalCents)}</strong></div><p class="checkout-disclaimer">${remoteOrder ? 'This demo order is saved in Supabase.' : 'This order is saved only in this browser.'} No payment was charged and no delivery request was sent.</p><button class="checkout-primary" type="button" data-cart-action="close">Continue shopping</button></div>`);
   }
 
   function add(asin, size, quantity = 1, goToCheckout = false) {
+    if (submitting) return;
     const product = byAsin.get(asin);
     if (!product || !product.sizes.includes(size) || !Number.isFinite(product.priceUsd)) return;
     const amount = Math.min(10, Math.max(1, Number(quantity) || 1));
@@ -93,6 +102,7 @@ export function createCheckout(products, onSelectProduct) {
   }
 
   dialog.addEventListener('click', (event) => {
+    if (submitting) return;
     if (event.target === dialog) { dialog.close(); return; }
     const button = event.target.closest('[data-cart-action]');
     if (!button) return;
@@ -110,12 +120,34 @@ export function createCheckout(products, onSelectProduct) {
     openCart();
   });
 
-  dialog.addEventListener('submit', (event) => {
+  dialog.addEventListener('submit', async (event) => {
     if (event.target.id !== 'checkout-form') return;
     event.preventDefault();
+    if (submitting) return;
     if (!cart.length) { openCart(); return; }
     const name = String(new FormData(event.target).get('fullName') ?? '').trim();
-    if (name) completeOrder(name);
+    if (!name) return;
+    if (!supabase) { completeOrder(name); return; }
+    submitting = true;
+    const button = event.target.querySelector('button[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Placing order…';
+    try {
+      const items = cart.map(({ asin, size, quantity }) => ({ asin, size, quantity }));
+      const order = await supabase.placeOrder(items);
+      completeOrder(name, order);
+    } catch (error) {
+      console.error(error);
+      const message = event.target.querySelector('.checkout-error');
+      message.textContent = `The order could not be saved. ${error.message}`;
+      message.hidden = false;
+    } finally {
+      submitting = false;
+      if (button.isConnected) {
+        button.disabled = false;
+        button.textContent = 'Place demo order';
+      }
+    }
   });
 
   basketButton.addEventListener('click', openCart);

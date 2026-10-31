@@ -1,6 +1,8 @@
 # Amazombie demo storefront
 
-This static storefront opens on a T-shirt results grid with Amazombie branding and the user-supplied logo. Shoppers can search, filter by captured color text or sample sizes, sort results, choose a size and quantity, add products to a basket, and complete a local demo checkout. Its catalog contains the four ASINs supplied by the user plus 20 more T-shirts indexed from marketplace search results. Product names in the demo use Amazombie branding; the source URLs remain intact for provenance.
+Live demo: [amazombie-yc.style.dev](https://amazombie-yc.style.dev/), hosted on Freestyle and connected to Supabase project `jhzbfupmolwqdjlgwuss`.
+
+This storefront opens on a T-shirt results grid with Amazombie branding and the user-supplied logo. Shoppers can search, filter by captured color text or sample sizes, sort results, choose a size and quantity, add products to a basket, and complete a demo checkout. Its catalog contains the four ASINs supplied by the user plus 20 more T-shirts indexed from marketplace search results. Product names in the demo use Amazombie branding; the source URLs remain intact for provenance.
 
 | ASIN | Listing |
 | --- | --- |
@@ -14,10 +16,21 @@ This static storefront opens on a T-shirt results grid with Amazombie branding a
 From this directory:
 
 ```sh
-python3 -m http.server 4173
+cp .env.example .env.local
+python3 serve.py --port 4173
 ```
 
-Open `http://localhost:4173/` in a browser. No package install or build step is needed.
+Open `http://localhost:4173/` in a browser. No package install or build step is needed. With an empty `SUPABASE_PUBLISHABLE_KEY`, checkout remains a browser-only demo.
+
+## Connect Supabase
+
+1. Apply [`../supabase/migrations/20261031220000_amazombie_demo_checkout.sql`](../supabase/migrations/20261031220000_amazombie_demo_checkout.sql) to project `jhzbfupmolwqdjlgwuss`. It extends the existing `amazombie` merchant's 24 products and variants; it does not create a duplicate catalog.
+2. Copy the project's publishable key into `.env.local` as `SUPABASE_PUBLISHABLE_KEY` (a legacy anon key can be supplied as `SUPABASE_ANON_KEY`). The project URL is already in `.env.example`. The server also reads a root `.env.local` if you already use one.
+3. Restart `serve.py`. The storefront then loads its product records from Supabase through `amazombie_catalog` and saves demo orders with `amazombie_place_demo_order`. If the connection fails, it shows a notice and uses the local demo catalog and checkout.
+
+The local server exposes only the URL and publishable key to the browser. The SQL function calculates totals from database prices. Delivery fields stay in the browser; the database stores selected items, total and timestamp only. No payment is collected.
+
+The Freestyle VM runs [`deploy/amazombie.service`](deploy/amazombie.service), serving this directory on port 8000. Redeploy changed storefront files with `freestyle vm scp amazombie-demo amazombie-demo:/srv` from the repository root, then restart the service with `freestyle vm exec amazombie-demo -- sudo systemctl restart amazombie.service`.
 
 ## Data provenance and limits
 
@@ -26,7 +39,7 @@ Open `http://localhost:4173/` in a browser. No package install or build step is 
 - All displayed dollar prices and size selections are **sample demo values**, not live prices or verified stock. Every product has a sample price so the entire catalog can be used in the checkout demo.
 - The FM London white 3-pack's 4.4 rating, 14,646 reviews, color and XL selection were captured from the screenshot supplied with the request. The mixed FM London 5-pack title is normalized from the linked product family and its image; its precise fabric composition was not independently verified.
 - No product record contains a textual garment length or size-guide measurement. Source listings may show measurements in images. The demo does not transcribe those measurements or invent answers about length.
-- The basket and demo orders are stored in this browser's local storage. Delivery form values are not saved or sent. Checkout does not process a payment, reserve stock, or send an order to a merchant.
-- “Ask Amazombie” is a deterministic local UI demo over these 24 records. Agent Relay, Terse, Supabase, customer authentication, and security review are not connected here.
+- The basket is stored in this browser's local storage. Without Supabase configuration, demo orders are also stored there. With Supabase configured, demo orders are stored in Supabase. Delivery form values are not saved or sent. Checkout does not process a payment, reserve stock, or send an order to a merchant.
+- “Ask Amazombie” is a deterministic local UI demo over these 24 records. Agent Relay, Terse, customer authentication, and security review are not connected to the storefront.
 
 The seed data is in [`data/products.json`](data/products.json). The product detail links lead to the original listings for verification.
