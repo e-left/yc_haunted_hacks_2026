@@ -4,6 +4,7 @@
 pub mod auth;
 pub mod error;
 pub mod model;
+pub mod pg_store;
 pub mod routes;
 pub mod store;
 
@@ -26,6 +27,7 @@ pub struct AppState {
 pub fn build_app(state: AppState) -> Router {
     Router::new()
         .route("/v1/health", get(routes::health))
+        .route("/v1/ready", get(routes::ready))
         .route("/v1/requests", post(routes::create_request))
         .route("/v1/requests/{id}", get(routes::get_request))
         .layer(DefaultBodyLimit::max(model::MAX_BODY_BYTES))

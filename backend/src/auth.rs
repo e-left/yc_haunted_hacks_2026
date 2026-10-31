@@ -23,6 +23,26 @@ pub enum Scope {
 
 impl Scope {
     pub const ALL: [Scope; 2] = [Scope::RequestsCreate, Scope::RequestsRead];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::RequestsCreate => "requests:create",
+            Self::RequestsRead => "requests:read",
+        }
+    }
+
+    /// Unknown scope strings return `None` and are dropped (least privilege).
+    pub fn parse(s: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|scope| scope.as_str() == s)
+    }
+}
+
+/// Client IDs: 1-64 chars of `A-Z a-z 0-9 . _ -` (same rule as the DB constraint).
+pub fn is_valid_client_id(id: &str) -> bool {
+    (1..=64).contains(&id.len())
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
 }
 
 /// What the store keeps about a key. It never holds the plaintext.

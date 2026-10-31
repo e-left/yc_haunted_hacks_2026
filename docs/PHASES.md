@@ -41,3 +41,21 @@ phases/phase-1/check.sh     # or run everything automated (tests + own server + 
 `backend/.env` is gitignored. It holds `LILD_API_KEYS` (hashes, for the server) and
 `CUSTOMER_KEY` / `OTHER_KEY` (plaintext, for the agents). In Phase 1, requests stay
 `pending` because no worker exists yet (that comes in Phase 3).
+
+## Phase 2: manual testing (Postgres)
+
+```bash
+phases/phase-2/server.sh    # terminal 1: starts local Postgres (Docker) + relay on :8080
+phases/phase-2/smoke.sh     # terminal 2: /v1/ready + the full Phase 1 smoke test
+# Persistence by hand: create a request, Ctrl+C the server, start it again, GET it back.
+phases/phase-2/check.sh     # or everything automated (uses the lild_test database)
+```
+
+- Local Postgres: `compose.yaml`, `127.0.0.1:54329`, databases `lild` (dev) and `lild_test` (tests).
+- **Supabase:** put `DATABASE_URL=<Supabase connection string>?sslmode=require` in
+  `backend/.env` and `phases/phase-2/server.sh` uses it. Migrations run at startup.
+- Tables live in the `lild` schema, not `public`, so Supabase's auto-generated REST API
+  doesn't expose them.
+- `GET /v1/health` = process is up. `GET /v1/ready` = database reachable (503 if not).
+- Re-provisioning keys from `LILD_API_KEYS` on restart never un-revokes or changes an existing key.
+- Inspect data: `docker compose exec postgres psql -U lild -d lild -c 'select * from lild.requests'`

@@ -1,6 +1,6 @@
 [package]
 name = "lild-backend"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 default-run = "lild-backend"
 
@@ -19,6 +19,7 @@ async-trait = "0.1"
 tower-http = { version = "0.6", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "migrate", "macros"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

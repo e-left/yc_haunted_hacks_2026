@@ -19,8 +19,25 @@ use crate::{
     store::{CreateOutcome, Idempotency},
 };
 
+/// Liveness: the process is up. Doesn't touch the database.
 pub async fn health() -> Json<serde_json::Value> {
     Json(json!({ "status": "ok" }))
+}
+
+/// Readiness: dependencies are reachable. 503 if the store is down, so failures are
+/// visible to load balancers and the demo instead of hiding behind a 200.
+pub async fn ready(State(state): State<AppState>) -> Response {
+    match state.store.ping().await {
+        Ok(()) => Json(json!({ "status": "ready" })).into_response(),
+        Err(e) => {
+            tracing::error!(error = %e, "readiness check failed");
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({ "error": { "code": "unavailable", "message": "storage unavailable" } })),
+            )
+                .into_response()
+        }
+    }
 }
 
 /// `POST /v1/requests`: accept a question, store it as `pending`, return 202.

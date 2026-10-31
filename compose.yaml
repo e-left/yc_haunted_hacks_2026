@@ -1,0 +1,23 @@
+# Local Postgres for development and tests.
+# Bound to 127.0.0.1 only, so the dev password never faces the network.
+# Production uses the Supabase connection string via DATABASE_URL instead.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: lild
+      POSTGRES_PASSWORD: lild_dev_password
+      POSTGRES_DB: lild
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - lild-pg:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lild -d lild"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  lild-pg:

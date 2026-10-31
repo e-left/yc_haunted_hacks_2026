@@ -36,6 +36,16 @@ pub enum CreateOutcome {
 
 #[async_trait]
 pub trait Store: Send + Sync {
+    /// Is the backing storage reachable? Used by `/v1/ready`.
+    async fn ping(&self) -> Result<(), StoreError> {
+        Ok(())
+    }
+
+    /// Add a key if its hash is not already known. An existing key is never modified,
+    /// so restarting with the same config can't un-revoke or re-scope a key.
+    /// Returns true if the key was inserted.
+    async fn provision_api_key(&self, record: ApiKeyRecord) -> Result<bool, StoreError>;
+
     async fn find_api_key(&self, key_hash: &str) -> Result<Option<ApiKeyRecord>, StoreError>;
 
     /// Store a new pending request. The idempotency check and the insert must be
@@ -84,6 +94,15 @@ impl MemoryStore {
 
 #[async_trait]
 impl Store for MemoryStore {
+    async fn provision_api_key(&self, record: ApiKeyRecord) -> Result<bool, StoreError> {
+        let mut inner = self.inner.lock().await;
+        if inner.api_keys.contains_key(&record.key_hash) {
+            return Ok(false);
+        }
+        inner.api_keys.insert(record.key_hash.clone(), record);
+        Ok(true)
+    }
+
     async fn find_api_key(&self, key_hash: &str) -> Result<Option<ApiKeyRecord>, StoreError> {
         Ok(self.inner.lock().await.api_keys.get(key_hash).cloned())
     }

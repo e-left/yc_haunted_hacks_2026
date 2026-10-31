@@ -22,6 +22,29 @@ pub enum RequestStatus {
     Failed,
 }
 
+impl RequestStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Pending => "pending",
+            Self::Active => "active",
+            Self::Rejected => "rejected",
+            Self::Expired => "expired",
+            Self::Failed => "failed",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        Some(match s {
+            "pending" => Self::Pending,
+            "active" => Self::Active,
+            "rejected" => Self::Rejected,
+            "expired" => Self::Expired,
+            "failed" => Self::Failed,
+            _ => return None,
+        })
+    }
+}
+
 /// A customer agent's request as stored by the relay.
 #[derive(Debug, Clone)]
 pub struct RelayRequest {

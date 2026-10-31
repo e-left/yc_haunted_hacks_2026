@@ -6,7 +6,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"
 step "Phase 1: cargo tests (unit + tests/phase1_relay_api.rs)"
 (cd "$BACKEND" && cargo test -q --lib --test phase1_relay_api)
 
-step "Phase 1: live server"
+step "Phase 1: live server (in-memory store)"
+unset DATABASE_URL
 ensure_built
 fresh_demo_keys
 start_server
