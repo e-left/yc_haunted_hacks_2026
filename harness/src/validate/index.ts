@@ -12,15 +12,20 @@ export type Check<T = object> =
   | ({ ok: true } & T)
   | { ok: false; code: RefusalCode; detail: string };
 
-/** The planner sees reviewable field names and types only, never private or custodial fields. */
+/** The planner sees public and reviewable field names and types, never private or custodial ones. */
 export function exposedInterface(policy: MerchantPolicy): ExposedResource[] {
   return Object.entries(policy.resources).flatMap(([name, resource]) => {
     const fields = Object.entries(resource.fields)
-      .filter(([, field]) => field.classification === "reviewable")
+      .filter(([, field]) => plannable(field))
       .map(([fieldName, field]) => ({ name: fieldName, type: field.type }));
     if (fields.length === 0) return [];
     return [{ name, ...(resource.description ? { description: resource.description } : {}), fields }];
   });
+}
+
+/** Public and reviewable data can be planned. Every plan is still reviewed. */
+function plannable(field: FieldPolicy | undefined): boolean {
+  return field?.classification === "public" || field?.classification === "reviewable";
 }
 
 function lookup<T>(record: Record<string, T>, key: string): T | undefined {
@@ -31,11 +36,11 @@ function matchesType(value: unknown, field: FieldPolicy): boolean {
   return typeof value === field.type;
 }
 
-/** Adds a resource's reviewable identifiers before validation and review, so approval covers them. */
+/** Adds a resource's plannable identifiers before validation and review, so approval covers them. */
 export function withIdentifiers(plan: Plan, policy: MerchantPolicy): Plan {
   const resource = lookup(policy.resources, plan.resource);
   const missing = (resource?.identifierFields ?? []).filter(
-    (name) => lookup(resource!.fields, name)?.classification === "reviewable" && !plan.fields.includes(name),
+    (name) => plannable(lookup(resource!.fields, name)) && !plan.fields.includes(name),
   );
   return { ...plan, fields: [...missing, ...plan.fields] };
 }
@@ -73,7 +78,8 @@ export function validatePlan(
       return { ok: false, code: "unsupported", detail: "operator not supported for field type" };
     }
   }
-  return { ok: true, accessCategories: ["reviewable"] };
+  const accessCategories = [...new Set(policies.flatMap((field) => (field ? [field.classification] : [])))];
+  return { ok: true, accessCategories };
 }
 
 /** An approval must match this exact plan. A partial approval is rejected, never narrowed silently. */

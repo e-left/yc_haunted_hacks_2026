@@ -59,7 +59,7 @@ export const ReviewDecisionSchema = z
   .strict();
 export type ReviewDecision = z.infer<typeof ReviewDecisionSchema>;
 
-export type Classification = "private" | "custodial" | "reviewable";
+export type Classification = "public" | "private" | "custodial" | "reviewable";
 export type FieldType = "string" | "number" | "boolean";
 
 export interface FieldPolicy {

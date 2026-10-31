@@ -47,7 +47,7 @@ export function buildPolicy(merchantId: string, rows: ClassificationRow[]): Merc
   const fields: MerchantPolicy["resources"][string]["fields"] = {};
   for (const [name, field] of Object.entries(PRODUCT_FIELDS)) {
     const category = lookup.get(`${field.table}.${field.column}`);
-    if (category === "private" || category === "custodial" || category === "reviewable") {
+    if (category === "public" || category === "private" || category === "custodial" || category === "reviewable") {
       fields[name] = { classification: category, type: field.type };
     }
   }

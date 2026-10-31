@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildPolicy } from "../src/catalog.js";
 import type { Plan } from "../src/contracts/index.js";
-import { exposedInterface, withIdentifiers } from "../src/validate/index.js";
+import { exposedInterface, validatePlan, withIdentifiers } from "../src/validate/index.js";
 
 const reviewable = (resource: string, field_name: string) => ({ resource, field_name, category: "reviewable" });
 
@@ -50,8 +50,25 @@ describe("policy from data_classifications", () => {
     expect(withIdentifiers(plan, policy).fields).toEqual(["name"]);
   });
 
+  it("lets the planner use public fields and adds public identifiers", () => {
+    const publicField = (resource: string, field_name: string) => ({ resource, field_name, category: "public" });
+    const policy = buildPolicy("m", [
+      publicField("products", "name"),
+      publicField("products", "id"),
+      reviewable("product_variants", "id"),
+      reviewable("inventory", "quantity"),
+      { resource: "supplier_costs", field_name: "unit_cost_usd", category: "private" },
+    ]);
+    const names = exposedInterface(policy)[0]!.fields.map((field) => field.name);
+    expect(names).toEqual(expect.arrayContaining(["name", "product_id", "variant_id", "quantity"]));
+    expect(names).not.toContain("supplier_cost");
+    expect(withIdentifiers(plan, policy).fields).toEqual(["product_id", "variant_id", "name"]);
+    const checked = validatePlan({ ...plan, fields: ["name", "quantity"] }, policy);
+    expect(checked).toMatchObject({ ok: true, accessCategories: ["public", "reviewable"] });
+  });
+
   it("treats an unknown category as unclassified", () => {
-    const policy = buildPolicy("m", [{ resource: "products", field_name: "name", category: "public" }]);
+    const policy = buildPolicy("m", [{ resource: "products", field_name: "name", category: "bogus" }]);
     expect(policy.resources.products!.fields).toEqual({});
   });
 });
