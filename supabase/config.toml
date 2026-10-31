@@ -1,0 +1,2 @@
+# Local project identifier. The CLI uses its defaults for unspecified settings.
+project_id = "lild"

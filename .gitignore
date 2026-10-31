@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.envrc
+*.tsbuildinfo
+supabase/.branches/
+supabase/.temp/

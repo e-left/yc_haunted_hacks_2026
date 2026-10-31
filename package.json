@@ -1,0 +1,17 @@
+{
+  "name": "lild",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --bun concurrently -k -n api,web -c blue,green \"bun run --bun --cwd apps/api dev\" \"bun run --bun --cwd apps/web dev\"",
+    "build": "bun run --bun --cwd packages/contracts build && bun run --bun --cwd apps/api build && bun run --bun --cwd apps/web build",
+    "typecheck": "bun run --bun --cwd packages/contracts build && bun run --bun --cwd apps/api typecheck && bun run --bun --cwd apps/web typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}
