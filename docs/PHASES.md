@@ -8,12 +8,8 @@ checked out, run, and tested on its own (`git checkout v0.1.0`).
 | 1 | `v0.1.0` | **Relay API core.** API-key auth (hashed, scoped, revocable, expiring), `POST/GET /v1/requests`, idempotency, ownership isolation, input limits. In-memory store. | FR-3 intake, FR-9 |
 | 2 | `v0.2.0` | **Postgres persistence.** Same `Store` trait backed by Supabase/Postgres + migrations. The Phase 1 tests also run against Postgres. | FR-7, FR-8 durability |
 | 3 | `v0.3.0` | **Worker + state machine.** Job claiming (`FOR UPDATE SKIP LOCKED`), leases, timeouts, bounded retries, explicit `failed` state. Stub pipeline. | FR-7, FR-9 |
-| 4 | `v0.4.0` | **Exposed schema, classification, structured plan + deterministic validator.** Planner LLM behind a trait (mocked in tests). Private fields are never exposed. | FR-1, FR-3, FR-5 |
-| 5 | `v0.5.0` | **Security review agent.** Approve/deny; timeout, malformed output, or unavailable reviewer means no activation. Approval scoped to the plan hash. | FR-4 |
-| 6 | `v0.6.0` | **Temporary API.** Invocation tokens, gateway, expiry check on every call, fixed and bounded inputs, Terse actor adapter. | FR-6 |
-| 7 | `v0.7.0` | **Database boundary.** Restricted execution role, grants, RLS, and customer JWT binding. Direct-DB denial tests. | FR-2, FR-5 |
-| 8 | `v0.8.0` | **Catalog, audit, and merchant admin.** | FR-7, FR-8 |
-| 9 | `v0.9.0` | **Demo script** covering acceptance criteria 1–9. | Demo |
+| 4 | `v0.4.0` | **Agent access (final relay phase).** `lild-mcp` MCP server so Claude Code / Claude Desktop can call the relay as tools (`ask_merchant`, `get_request_status`, `check_relay_connection`). Key stays out of the model's context; https-only off localhost. | Spec: Customer agent ↔ relay |
+| 5+ | colleague | **Real pipeline**: classification, plan + validator, security review, Terse actor, RLS, catalog. Plugs into the `Pipeline` trait. See **`docs/HANDOFF.md`**. | FR-1..FR-8 |
 
 ## Workflow: gate before every phase
 
@@ -83,3 +79,17 @@ pending -> active | rejected | failed      active -> expired (Phase 6)
 - **Stub pipeline:** results carry `"simulated": true` until Phase 4-6 add the real pipeline.
 - Inspect the queue: `docker compose exec postgres psql -U lild -d lild -c
   'select id, status, attempts, locked_by, last_error from lild.requests order by created_at desc limit 10'`
+
+## Phase 4: connect Claude (final relay phase)
+
+```bash
+phases/phase-4/server.sh            # terminal 1: relay (same as phase 3)
+phases/phase-4/connect-claude.sh    # once: builds lild-mcp, registers it with Claude Code,
+                                    #       prints the Claude Desktop config
+phases/phase-4/smoke.sh             # phases 1-3 smoke + a scripted MCP session via the real binary
+phases/phase-4/check.sh             # automated: MCP tests + live relay + MCP session
+```
+
+Then open Claude Code in this folder and ask it to use the `lild-relay` tools.
+`lild-mcp` reads the key from `backend/.env` (`CUSTOMER_KEY`) at startup. Claude's config
+only stores the path, never the key. Next steps for the real pipeline: `docs/HANDOFF.md`.

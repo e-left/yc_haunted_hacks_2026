@@ -3,6 +3,7 @@
 
 pub mod auth;
 pub mod error;
+pub mod mcp;
 pub mod model;
 pub mod pg_store;
 pub mod pipeline;

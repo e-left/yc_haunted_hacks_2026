@@ -19,8 +19,9 @@ use tracing_subscriber::EnvFilter;
 /// - `DATABASE_URL` unset: in-memory store (Phase 1 behavior, data lost on restart).
 /// - `LILD_API_KEYS="client_id:sha256hex,..."` keys are provisioned at startup. Existing
 ///   keys are never modified, so a revoked key stays revoked across restarts.
-/// - `LILD_WORKERS` background workers (default 2, `0` disables). Phase 3 uses the
-///   stub pipeline, so requests become `active` with a result marked `simulated`.
+/// - `LILD_WORKERS` background workers (default 2, `0` disables).
+/// - `LILD_PIPELINE` which pipeline the workers run (default `stub`: results are marked
+///   `simulated`). The real pipeline plugs in here; see docs/HANDOFF.md.
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -88,7 +89,14 @@ async fn main() {
         .ok()
         .map(|v| v.parse().unwrap_or_else(|_| fatal("LILD_WORKERS must be a number")))
         .unwrap_or(2);
-    let pipeline: Arc<dyn Pipeline> = Arc::new(StubPipeline);
+    // Integration point for the real pipeline (plan -> validate -> review -> Terse actor):
+    // add a variant here, e.g. "real" => Arc::new(RealPipeline::new(...)). See docs/HANDOFF.md.
+    // The regression gates pin LILD_PIPELINE=stub so their checks stay deterministic.
+    let pipeline_name = std::env::var("LILD_PIPELINE").unwrap_or_else(|_| "stub".into());
+    let pipeline: Arc<dyn Pipeline> = match pipeline_name.as_str() {
+        "stub" => Arc::new(StubPipeline),
+        other => fatal(&format!("unknown LILD_PIPELINE '{other}' (available: stub)")),
+    };
     let (shutdown_tx, shutdown_rx) = watch::channel(false);
     let mut worker_handles = Vec::new();
     for n in 0..workers {
@@ -101,7 +109,7 @@ async fn main() {
             shutdown_rx.clone(),
         )));
     }
-    tracing::info!(workers, pipeline = "stub (simulated)", "workers started");
+    tracing::info!(workers, pipeline = %pipeline_name, "workers started");
 
     axum::serve(listener, build_app(AppState { store }))
         .with_graceful_shutdown(shutdown_signal())

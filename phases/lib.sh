@@ -81,7 +81,8 @@ start_server() {
   local port="${1:-$((18000 + RANDOM % 2000))}"
   BASE_URL="http://127.0.0.1:$port"
   SERVER_LOG="$(mktemp)"
-  LILD_BIND="127.0.0.1:$port" RUST_LOG=info "$BACKEND/target/debug/lild-backend" >"$SERVER_LOG" 2>&1 &
+  # Gates always use the stub pipeline so their checks stay deterministic.
+  LILD_BIND="127.0.0.1:$port" LILD_PIPELINE=stub RUST_LOG=info "$BACKEND/target/debug/lild-backend" >"$SERVER_LOG" 2>&1 &
   SERVER_PID=$!
   trap stop_server EXIT
   export BASE_URL
