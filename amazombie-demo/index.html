@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#131921" />
+    <title>Amazombie | Dead simple shopping</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-main">
+        <a class="brand" href="./" aria-label="Amazombie home">
+          <span class="brand-word">amazombie</span>
+          <span class="brand-smile" aria-hidden="true"></span>
+          <span class="brand-tagline">dead simple</span>
+        </a>
+
+        <button class="delivery header-link" id="delivery-button" type="button">
+          <span class="pin-icon" aria-hidden="true">♧</span>
+          <span><small>Deliver to</small><strong>United States</strong></span>
+        </button>
+
+        <form class="search" id="search-form" role="search">
+          <label class="search-category" for="search-input">All <span aria-hidden="true">▾</span></label>
+          <input id="search-input" name="q" type="search" value="t-shirt" autocomplete="off" aria-label="Search Amazombie T-shirts" />
+          <button class="search-submit" type="submit" aria-label="Search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.2" fill="none" stroke="currentColor" stroke-width="2.7"/><path d="m16.3 16.3 5.2 5.2" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/></svg>
+          </button>
+          <div class="search-results" id="search-results" hidden></div>
+        </form>
+
+        <div class="language header-link" aria-label="Language English"><strong>EN</strong><span class="caret">▾</span></div>
+        <div class="account header-link"><small>Hello, shopper</small><strong>Demo account</strong></div>
+        <div class="orders header-link"><small>Returns</small><strong>&amp; Orders</strong></div>
+        <button class="cart header-link" id="cart-button" type="button" aria-label="Basket unavailable in demo"><span class="cart-icon" aria-hidden="true">🛒</span><strong>Basket</strong></button>
+      </div>
+
+      <nav class="header-nav" aria-label="Main navigation">
+        <span class="all-menu">☰ <strong>All</strong></span>
+        <span class="nav-pill">✦ Ask Amazombie</span>
+        <span>Today's Deals</span>
+        <span>Fashion</span>
+        <span>Gift Cards</span>
+        <span>Haunted Hacks</span>
+        <span class="nav-right">More shirts. Dead simple browsing.</span>
+      </nav>
+
+      <nav class="fashion-nav" aria-label="Fashion navigation">
+        <strong>AMAZOMBIE FASHION</strong>
+        <span>NEW ARRIVALS</span><span>WOMEN</span><span class="current">MEN</span><span>KIDS &amp; BABY</span>
+        <span class="fashion-note">Everyday basics</span>
+      </nav>
+    </header>
+
+    <aside class="delivery-popover" id="delivery-popover" aria-label="Demo notice">
+      <p>Welcome to Amazombie. This storefront uses linked T-shirt listings with sample size choices. Prices and availability are not live.</p>
+      <div class="popover-actions">
+        <button class="button-outline" id="dismiss-notice" type="button">Dismiss</button>
+        <button class="button-yellow" id="explore-catalog" type="button">Explore products</button>
+      </div>
+    </aside>
+
+    <main id="app">
+      <div class="loading">Loading Amazombie’s T-shirts…</div>
+    </main>
+
+    <footer class="site-footer">
+      <span>AMAZOMBIE DEMO</span>
+      <span>Product images and listing links are sourced from Amazon. This is a local demo, not a live shop.</span>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
