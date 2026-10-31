@@ -1,9 +1,12 @@
+import { createCheckout } from './checkout.js';
+
 const app = document.querySelector('#app');
 const searchInput = document.querySelector('#search-input');
 const searchForm = document.querySelector('#search-form');
 const notice = document.querySelector('#delivery-popover');
 
 let products = [];
+let checkout;
 let selectedAsin = null;
 let searchQuery = '';
 let colorFilter = '';
@@ -183,7 +186,14 @@ function renderProduct() {
           <details class="size-chart"><summary>Size chart</summary><p>Size options are illustrative. Some source listings show measurements in images; this demo does not transcribe garment lengths into text.</p></details>
         </section>
 
-        <section class="product-details" id="product-details"><h2>Product details</h2><div class="rule"></div><h3>Top highlights</h3><ul>${product.highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul><dl><div><dt>Brand</dt><dd>${escapeHtml(product.brand)}</dd></div><div><dt>Color</dt><dd>${escapeHtml(product.color)}</dd></div><div><dt>Fabric</dt><dd>${escapeHtml(product.fabric)}</dd></div><div><dt>Fit</dt><dd>${escapeHtml(product.fit)}</dd></div><div><dt>ASIN</dt><dd>${escapeHtml(product.asin)}</dd></div></dl><p class="source-note">${escapeHtml(product.priceBasis)}. This catalog is a UI demo with no checkout or live stock feed.</p></section>
+        <section class="purchase-panel" id="purchase" aria-label="Buy this T-shirt">
+          <div><strong>${compactPrice(product)}</strong><span>Sample price · Size ${escapeHtml(selectedSize)}</span></div>
+          <label for="product-quantity">Quantity<select id="product-quantity">${[1, 2, 3, 4, 5].map((amount) => `<option value="${amount}">${amount}</option>`).join('')}</select></label>
+          <div class="purchase-actions"><button type="button" id="add-to-basket">Add to basket</button><button type="button" id="buy-now">Buy now</button></div>
+          <p>Demo checkout · no payment is collected.</p>
+        </section>
+
+        <section class="product-details" id="product-details"><h2>Product details</h2><div class="rule"></div><h3>Top highlights</h3><ul>${product.highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul><dl><div><dt>Brand</dt><dd>${escapeHtml(product.brand)}</dd></div><div><dt>Color</dt><dd>${escapeHtml(product.color)}</dd></div><div><dt>Fabric</dt><dd>${escapeHtml(product.fabric)}</dd></div><div><dt>Fit</dt><dd>${escapeHtml(product.fit)}</dd></div><div><dt>ASIN</dt><dd>${escapeHtml(product.asin)}</dd></div></dl><p class="source-note">${escapeHtml(product.priceBasis)}. Stock is not live; checkout creates a local demo order.</p></section>
       </section>
     </div>
     <section class="browse-section" id="browse" aria-label="Scrollable T-shirt catalog">
@@ -243,6 +253,8 @@ function bindProductEvents() {
   }));
   app.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => { galleryView = button.dataset.view; renderProduct(); }));
   app.querySelectorAll('[data-size]').forEach((button) => button.addEventListener('click', () => { selectedSizes.set(activeProduct().asin, button.dataset.size); renderProduct(); }));
+  app.querySelector('#add-to-basket').addEventListener('click', () => checkout.add(activeProduct().asin, selectedSizes.get(activeProduct().asin) ?? activeProduct().defaultSize, Number(app.querySelector('#product-quantity').value)));
+  app.querySelector('#buy-now').addEventListener('click', () => checkout.add(activeProduct().asin, selectedSizes.get(activeProduct().asin) ?? activeProduct().defaultSize, Number(app.querySelector('#product-quantity').value), true));
   app.querySelectorAll('[data-question]').forEach((button) => button.addEventListener('click', () => {
     const answer = app.querySelector('#ask-answer');
     answer.textContent = answerQuestion(button.dataset.question, activeProduct());
@@ -307,7 +319,6 @@ window.addEventListener('popstate', () => {
 document.querySelector('#delivery-button').addEventListener('click', () => { notice.hidden = !notice.hidden; });
 document.querySelector('#dismiss-notice').addEventListener('click', () => { notice.hidden = true; });
 document.querySelector('#explore-catalog').addEventListener('click', () => { notice.hidden = true; goHome(); document.querySelector('#results')?.scrollIntoView({ behavior: 'smooth' }); });
-document.querySelector('#cart-button').addEventListener('click', () => showToast('Checkout is outside this demo.'));
 
 try {
   const response = await fetch('data/products.json');
@@ -315,6 +326,7 @@ try {
   const catalog = await response.json();
   products = catalog.products;
   if (!Array.isArray(products) || products.length === 0) throw new Error('No demo products found');
+  checkout = createCheckout(products, chooseProduct);
   const params = new URLSearchParams(location.search);
   const requestedAsin = params.get('asin');
   selectedAsin = products.some((product) => product.asin === requestedAsin) ? requestedAsin : null;
