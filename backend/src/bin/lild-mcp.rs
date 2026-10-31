@@ -3,15 +3,18 @@
 //! Config (environment):
 //!   LILD_BASE_URL   relay URL (default http://127.0.0.1:8080; non-local hosts need https)
 //!   LILD_API_KEY    the agent's lild_live_ key, or:
-//!   LILD_ENV_FILE   path to a .env file containing LILD_API_KEY= or CUSTOMER_KEY=
-//!                   (keeps the key out of Claude's own config files)
+//!   LILD_ENV_FILE   path to a .env file holding the key (keeps it out of the agent's config)
+//!   LILD_KEY_VAR    which variable in LILD_ENV_FILE holds this agent's key, e.g. CLAUDE_KEY
+//!                   or CODEX_KEY (default: LILD_API_KEY, then CUSTOMER_KEY)
 //!   LILD_MCP_LOG    log level for stderr (default warn)
 //!
 //! stdout is reserved for MCP messages; all logs go to stderr.
 
 use std::{path::PathBuf, sync::Arc};
 
-use lild_backend::mcp::{McpServer, RelayClient, read_key_from_env_file, serve_stdio};
+use lild_backend::mcp::{
+    McpServer, RelayClient, read_key_from_env_file, read_named_key_from_env_file, serve_stdio,
+};
 use tracing_subscriber::EnvFilter;
 
 fn fail(msg: &str) -> ! {
@@ -32,7 +35,12 @@ async fn main() {
         Ok(k) if !k.trim().is_empty() => k,
         _ => match std::env::var("LILD_ENV_FILE") {
             Ok(path) if !path.is_empty() => {
-                read_key_from_env_file(&PathBuf::from(path)).unwrap_or_else(|e| fail(&e))
+                let path = PathBuf::from(path);
+                match std::env::var("LILD_KEY_VAR") {
+                    Ok(var) if !var.is_empty() => read_named_key_from_env_file(&path, &var),
+                    _ => read_key_from_env_file(&path),
+                }
+                .unwrap_or_else(|e| fail(&e))
             }
             _ => fail("set LILD_API_KEY or LILD_ENV_FILE"),
         },

@@ -84,12 +84,33 @@ pending -> active | rejected | failed      active -> expired (Phase 6)
 
 ```bash
 phases/phase-4/server.sh            # terminal 1: relay (same as phase 3)
-phases/phase-4/connect-claude.sh    # once: builds lild-mcp, registers it with Claude Code,
+phases/phase-4/connect-claude.sh    # once: Claude's own key + registers lild-mcp with Claude Code,
                                     #       prints the Claude Desktop config
+phases/phase-4/connect-codex.sh     # once: Codex's own key + registers lild-mcp with Codex CLI
 phases/phase-4/smoke.sh             # phases 1-3 smoke + a scripted MCP session via the real binary
 phases/phase-4/check.sh             # automated: MCP tests + live relay + MCP session
 ```
 
-Then open Claude Code in this folder and ask it to use the `lild-relay` tools.
-`lild-mcp` reads the key from `backend/.env` (`CUSTOMER_KEY`) at startup. Claude's config
-only stores the path, never the key. Next steps for the real pipeline: `docs/HANDOFF.md`.
+Restart the relay after a connect script creates a new key (keys are loaded at startup).
+Then ask Claude Code or Codex to use the `lild-relay` tools.
+
+### `backend/.env`: one key per agent (gitignored, mode 600, created by the scripts)
+
+```bash
+# server side: client_id:sha256(key) for every agent the relay accepts
+LILD_API_KEYS=demo-customer:<hash>,other-agent:<hash>,claude-agent:<hash>,codex-agent:<hash>
+# agent side: the plaintext keys (each agent reads only its own)
+CUSTOMER_KEY=lild_live_...   # smoke tests / curl
+OTHER_KEY=lild_live_...      # smoke tests (the "other agent" isolation check)
+CLAUDE_KEY=lild_live_...     # Claude Code / Desktop   (LILD_KEY_VAR=CLAUDE_KEY)
+CODEX_KEY=lild_live_...      # Codex CLI               (LILD_KEY_VAR=CODEX_KEY)
+```
+
+- Separate keys mean separate identities: the relay logs `client_id=claude-agent` vs
+  `codex-agent`, each agent sees only its own requests, and you can revoke one without the other.
+- Agent configs store only the `.env` path and the variable name, never the key itself.
+- Revoke an agent: `docker compose exec postgres psql -U lild -d lild -c
+  "update lild.api_keys set revoked_at = now() where client_id = 'codex-agent'"`, then delete
+  its `CODEX_KEY` line and rerun `connect-codex.sh` to issue a fresh key.
+
+Next steps for the real pipeline: `docs/HANDOFF.md`.

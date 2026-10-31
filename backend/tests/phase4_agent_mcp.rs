@@ -9,7 +9,10 @@ use lild_backend::{
     AppState,
     auth::{ApiKeyRecord, Scope, generate_api_key},
     build_app,
-    mcp::{McpServer, RelayClient, SUPPORTED_PROTOCOL_VERSIONS, read_key_from_env_file},
+    mcp::{
+        McpServer, RelayClient, SUPPORTED_PROTOCOL_VERSIONS, read_key_from_env_file,
+        read_named_key_from_env_file,
+    },
     pipeline::StubPipeline,
     store::{MemoryStore, Store},
     worker::{WorkerConfig, run_worker},
@@ -267,6 +270,53 @@ fn key_is_read_from_env_file() {
     std::fs::write(&f, "OTHER=1\n").unwrap();
     assert!(read_key_from_env_file(&f).is_err());
     assert!(read_key_from_env_file(&dir.join("missing")).is_err());
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn each_agent_reads_its_own_named_key() {
+    let dir = std::env::temp_dir().join(format!("lild-mcp-named-{}", uuid::Uuid::new_v4().simple()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let f = dir.join(".env");
+    std::fs::write(&f, "CUSTOMER_KEY=lild_live_cust\nCLAUDE_KEY=lild_live_claude\nCODEX_KEY=lild_live_codex\n").unwrap();
+    assert_eq!(read_named_key_from_env_file(&f, "CLAUDE_KEY").unwrap(), "lild_live_claude");
+    assert_eq!(read_named_key_from_env_file(&f, "CODEX_KEY").unwrap(), "lild_live_codex");
+    assert!(read_named_key_from_env_file(&f, "GEMINI_KEY").is_err(), "missing var is an error, no fallback");
+    for bad in ["", "claude_key", "1KEY", "KEY;rm", "A B"] {
+        assert!(read_named_key_from_env_file(&f, bad).is_err(), "{bad:?} rejected");
+    }
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[tokio::test]
+async fn real_binary_uses_the_key_named_by_lild_key_var() {
+    let r = start_relay(false).await;
+    let dir = std::env::temp_dir().join(format!("lild-mcp-bin-{}", uuid::Uuid::new_v4().simple()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let f = dir.join(".env");
+    // CUSTOMER_KEY is wrong; CODEX_KEY is the real one. LILD_KEY_VAR must pick CODEX_KEY.
+    std::fs::write(&f, format!("CUSTOMER_KEY={}\nCODEX_KEY={}\n", generate_api_key().plaintext, r.key)).unwrap();
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_lild-mcp"))
+        .env("LILD_BASE_URL", &r.base)
+        .env_remove("LILD_API_KEY")
+        .env("LILD_ENV_FILE", &f)
+        .env("LILD_KEY_VAR", "CODEX_KEY")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .kill_on_drop(true)
+        .spawn()
+        .unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    let mut lines = BufReader::new(child.stdout.take().unwrap()).lines();
+    stdin
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"check_relay_connection\",\"arguments\":{}}}\n")
+        .await
+        .unwrap();
+    let line = tokio::time::timeout(Duration::from_secs(10), lines.next_line()).await.unwrap().unwrap().unwrap();
+    let resp: Value = serde_json::from_str(&line).unwrap();
+    assert_eq!(resp["result"]["structuredContent"]["api_key"], "accepted", "{resp}");
     std::fs::remove_dir_all(dir).unwrap();
 }
 

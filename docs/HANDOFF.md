@@ -15,11 +15,14 @@ Claude ──MCP──▶ lild-mcp ──HTTPS + API key──▶ relay API ─�
 ```bash
 phases/phase-4/server.sh            # Postgres (Docker) + relay on :8080 + 2 workers
 phases/phase-4/smoke.sh             # everything works end to end
-phases/phase-4/connect-claude.sh    # register lild-mcp with Claude Code / print Claude Desktop config
+phases/phase-4/connect-claude.sh    # Claude's key + register with Claude Code / print Desktop config
+phases/phase-4/connect-codex.sh     # Codex's key + register with Codex CLI
 ```
 
-Then in Claude Code (in this folder): *"Use the lild-relay tools to ask the merchant which
-in-stock shirts have a body length under 30 inches."*
+Restart the relay after a connect script creates a new key. Then in Claude Code or Codex:
+*"Use the lild-relay tools to ask the merchant which in-stock shirts have a body length under
+30 inches."* Each agent has its own key and `client_id` (`claude-agent`, `codex-agent`);
+the `.env` layout is in `docs/PHASES.md` (Phase 4).
 
 ## Your integration point: the `Pipeline` trait
 

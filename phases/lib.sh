@@ -66,6 +66,30 @@ EOF
   fi
 }
 
+# ensure_agent_key <client_id> <VAR>: give an agent (claude-agent, codex-agent, ...) its own
+# key. If <VAR> isn't in backend/.env yet, generate a key, store the plaintext as VAR=..., and
+# add client_id:hash to LILD_API_KEYS so the server accepts it after a restart.
+# Sets NEW_AGENT_KEY=1 when a key was created.
+ensure_agent_key() {
+  local client="$1" var="$2" key hash tmp
+  NEW_AGENT_KEY=0
+  # Decide by the file, not by variables that may already be exported in this shell.
+  if [ ! -f "$ENV_FILE" ]; then
+    (unset LILD_API_KEYS CUSTOMER_KEY OTHER_KEY; ensure_env_keys) >/dev/null
+  fi
+  if grep -q "^$var=lild_live_" "$ENV_FILE"; then return 0; fi
+  read -r key hash <<<"$(gen_key "$client")"
+  tmp="$(mktemp)"
+  awk -v add="$client:$hash" '
+    /^LILD_API_KEYS=/ { print ($0 ~ /=$/ ? $0 add : $0 "," add); done = 1; next }
+    { print }
+    END { if (!done) print "LILD_API_KEYS=" add }' "$ENV_FILE" >"$tmp"
+  printf '%s=%s\n' "$var" "$key" >>"$tmp"
+  mv "$tmp" "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  NEW_AGENT_KEY=1
+}
+
 # Load backend/.env if it exists (never committed).
 load_env() {
   if [ -f "$ENV_FILE" ]; then

@@ -153,29 +153,49 @@ impl RelayClient {
     }
 }
 
-/// Read the API key from a .env-style file: `LILD_API_KEY=...`, else `CUSTOMER_KEY=...`.
-pub fn read_key_from_env_file(path: &Path) -> Result<String, String> {
+/// Parse a .env-style file into (name, value) pairs. Skips comments; strips quotes and `export`.
+fn parse_env_file(path: &Path) -> Result<Vec<(String, String)>, String> {
     let text = std::fs::read_to_string(path)
         .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
-    let mut found: [Option<String>; 2] = [None, None];
-    for line in text.lines() {
-        let line = line.trim();
-        if line.starts_with('#') {
-            continue;
-        }
-        let Some((k, v)) = line.split_once('=') else { continue };
-        let v = v.trim().trim_matches('"').trim_matches('\'').to_string();
-        match k.trim().trim_start_matches("export ").trim() {
-            "LILD_API_KEY" => found[0] = Some(v),
-            "CUSTOMER_KEY" => found[1] = Some(v),
-            _ => {}
-        }
-    }
-    let [primary, fallback] = found;
-    primary
-        .or(fallback)
+    Ok(text
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| l.split_once('='))
+        .map(|(k, v)| {
+            let k = k.trim().trim_start_matches("export ").trim().to_string();
+            let v = v.trim().trim_matches('"').trim_matches('\'').to_string();
+            (k, v)
+        })
+        .collect())
+}
+
+/// Read the API key from a .env-style file: `LILD_API_KEY=...`, else `CUSTOMER_KEY=...`.
+pub fn read_key_from_env_file(path: &Path) -> Result<String, String> {
+    let vars = parse_env_file(path)?;
+    let get = |name: &str| vars.iter().rev().find(|(k, _)| k == name).map(|(_, v)| v.clone());
+    get("LILD_API_KEY")
+        .or_else(|| get("CUSTOMER_KEY"))
         .filter(|v| !v.is_empty())
         .ok_or_else(|| format!("no LILD_API_KEY or CUSTOMER_KEY in {}", path.display()))
+}
+
+/// Read the key stored under a specific variable (e.g. `CLAUDE_KEY`, `CODEX_KEY`), so
+/// each agent can have its own key in the same .env file.
+pub fn read_named_key_from_env_file(path: &Path, var: &str) -> Result<String, String> {
+    let valid = !var.is_empty()
+        && var.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
+        && !var.as_bytes()[0].is_ascii_digit();
+    if !valid {
+        return Err(format!("LILD_KEY_VAR '{}' must look like CLAUDE_KEY", truncate_chars(var, 64)));
+    }
+    parse_env_file(path)?
+        .into_iter()
+        .rev()
+        .find(|(k, _)| k == var)
+        .map(|(_, v)| v)
+        .filter(|v| !v.is_empty())
+        .ok_or_else(|| format!("no {var} in {}", path.display()))
 }
 
 // ---------------------------------------------------------------------------
