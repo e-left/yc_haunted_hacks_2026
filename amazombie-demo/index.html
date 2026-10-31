@@ -11,7 +11,7 @@
     <header class="site-header">
       <div class="header-main">
         <a class="brand" href="./" aria-label="Amazombie home">
-          <span class="brand-word">amazombie<span class="brand-domain">.de</span></span>
+          <span class="brand-word">amazombie</span>
           <span class="brand-smile" aria-hidden="true"></span>
           <span class="brand-tagline">dead simple</span>
         </a>
@@ -23,14 +23,14 @@
 
         <form class="search" id="search-form" role="search">
           <label class="search-category" for="search-input">All <span aria-hidden="true">▾</span></label>
-          <input id="search-input" name="q" type="search" value="t-shirt" autocomplete="off" aria-label="Search Amazombie's four products" />
+          <input id="search-input" name="q" type="search" value="t-shirt" autocomplete="off" aria-label="Search Amazombie T-shirts" />
           <button class="search-submit" type="submit" aria-label="Search">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.2" fill="none" stroke="currentColor" stroke-width="2.7"/><path d="m16.3 16.3 5.2 5.2" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/></svg>
           </button>
           <div class="search-results" id="search-results" hidden></div>
         </form>
 
-        <div class="language header-link" aria-label="Language English"><span class="flag">🇩🇪</span><strong>EN</strong><span class="caret">▾</span></div>
+        <div class="language header-link" aria-label="Language English"><strong>EN</strong><span class="caret">▾</span></div>
         <div class="account header-link"><small>Hello, shopper</small><strong>Demo account</strong></div>
         <div class="orders header-link"><small>Returns</small><strong>&amp; Orders</strong></div>
         <button class="cart header-link" id="cart-button" type="button" aria-label="Basket unavailable in demo"><span class="cart-icon" aria-hidden="true">🛒</span><strong>Basket</strong></button>
@@ -43,7 +43,7 @@
         <span>Fashion</span>
         <span>Gift Cards</span>
         <span>Haunted Hacks</span>
-        <span class="nav-right">Four products. One dead simple demo.</span>
+        <span class="nav-right">More shirts. Dead simple browsing.</span>
       </nav>
 
       <nav class="fashion-nav" aria-label="Fashion navigation">
@@ -54,7 +54,7 @@
     </header>
 
     <aside class="delivery-popover" id="delivery-popover" aria-label="Demo notice">
-      <p>We are showing a sample storefront with four linked T-shirts. Prices, sizes and availability are demo data unless marked as captured from the supplied screenshot.</p>
+      <p>Welcome to Amazombie. This storefront uses linked T-shirt listings with sample size choices. Prices and availability are not live.</p>
       <div class="popover-actions">
         <button class="button-outline" id="dismiss-notice" type="button">Dismiss</button>
         <button class="button-yellow" id="explore-catalog" type="button">Explore products</button>
@@ -62,12 +62,12 @@
     </aside>
 
     <main id="app">
-      <div class="loading">Loading Amazombie’s four products…</div>
+      <div class="loading">Loading Amazombie’s T-shirts…</div>
     </main>
 
     <footer class="site-footer">
       <span>AMAZOMBIE DEMO</span>
-      <span>Product images correspond to the four supplied ASINs. This is a local demo, not a live shop.</span>
+      <span>Product images and listing links are sourced from Amazon. This is a local demo, not a live shop.</span>
     </footer>
 
     <script type="module" src="app.js"></script>
