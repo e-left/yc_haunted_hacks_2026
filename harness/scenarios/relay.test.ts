@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatReply, parseReply, toRelayMessage } from "../src/adapters/relay.js";
+import { formatReply, isOverloaded, parseReply, toRelayMessage, withRelayRetry } from "../src/adapters/relay.js";
 
 const event = (from: string | undefined, text: string) => ({
   message: { messageId: "m1", text, ...(from ? { from: { name: from } } : {}) },
@@ -17,6 +17,38 @@ describe("Relay adapter", () => {
   it("ignores messages with no sender or text", () => {
     expect(toRelayMessage(event(undefined, "hello"), "merchant")).toBeNull();
     expect(toRelayMessage(event("customer", "   "), "merchant")).toBeNull();
+  });
+
+  it("retries an overloaded send until it works", async () => {
+    let calls = 0;
+    const result = await withRelayRetry(async () => {
+      calls += 1;
+      if (calls < 3) throw new Error("The database is temporarily overloaded.");
+      return "sent";
+    }, 1);
+    expect(result).toBe("sent");
+    expect(calls).toBe(3);
+  });
+
+  it("gives up after a bounded number of attempts", async () => {
+    let calls = 0;
+    const send = async () => {
+      calls += 1;
+      throw Object.assign(new Error("busy"), { status: 503 });
+    };
+    await expect(withRelayRetry(send, 1)).rejects.toThrow("busy");
+    expect(calls).toBe(4);
+  });
+
+  it("does not retry a real failure", async () => {
+    let calls = 0;
+    const send = async () => {
+      calls += 1;
+      throw Object.assign(new Error("forbidden"), { status: 403 });
+    };
+    await expect(withRelayRetry(send, 1)).rejects.toThrow("forbidden");
+    expect(calls).toBe(1);
+    expect(isOverloaded(new Error("forbidden"))).toBe(false);
   });
 
   it("round-trips a structured reply through the message text", () => {

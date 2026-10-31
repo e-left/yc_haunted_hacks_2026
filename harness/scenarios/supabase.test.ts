@@ -87,6 +87,7 @@ describe.runIf(process.env.LIVE_SUPABASE)("Supabase boundary", { timeout: 30_000
   afterAll(async () => {
     await executor.end();
     await Promise.all(created.map((id) => grants.revoke(id)));
+    await pool.query("delete from lild.request_log where request_id = any($1)", [requests]);
     await pool.query("delete from lild.interactions where request_id = any($1)", [requests]);
     await pool.query("delete from lild.apis where request_id = any($1)", [requests]);
     await pool.query("delete from lild.requests where request_id = any($1)", [requests]);

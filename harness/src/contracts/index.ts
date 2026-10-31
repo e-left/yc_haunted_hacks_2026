@@ -126,6 +126,32 @@ export interface InteractionRecord {
   at: string;
 }
 
+/** Starts a request's row. This is the only record that keeps raw request text. */
+export interface RequestLogEntry {
+  requestId: string;
+  eventId: string;
+  merchantId: string;
+  sender: string;
+  requestText: string;
+}
+
+/** Stages fill in their own fields. Undefined fields keep their stored value. */
+export interface RequestLogPatch {
+  status?: string;
+  statusCode?: string;
+  plannerOutput?: unknown;
+  plan?: Plan;
+  planHash?: string;
+  review?: unknown;
+  reply?: unknown;
+  apiId?: string;
+  actorClass?: string;
+  actorId?: string;
+  apiUrl?: string;
+  contract?: unknown;
+  expiresAt?: string;
+}
+
 export type Reply =
   | { kind: "refused"; requestId: string; code: RefusalCode; message: string }
   | { kind: "error"; requestId: string; code: string; message: string }
@@ -138,6 +164,11 @@ export type Reply =
       expiresAt: string;
       token: string;
     };
+
+/** The token must never reach a log: anyone holding it could call the API. */
+export function withoutToken(reply: Reply): unknown {
+  return reply.kind === "api" ? { ...reply, token: "[redacted]" } : reply;
+}
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);

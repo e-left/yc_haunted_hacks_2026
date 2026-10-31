@@ -4,6 +4,8 @@ import type {
   ApiRecord,
   InteractionRecord,
   MerchantPolicy,
+  RequestLogEntry,
+  RequestLogPatch,
   RequestRecord,
   RequestState,
 } from "../contracts/index.js";
@@ -91,6 +93,45 @@ export class PostgresStore implements StorePort {
     return buildPolicy(merchantId, rows);
   }
 
+  async startRequestLog(entry: RequestLogEntry): Promise<void> {
+    await this.write(
+      `insert into lild.request_log (request_id, event_id, merchant_id, sender, request_text)
+       values ($1, $2, $3, $4, $5)`,
+      [entry.requestId, entry.eventId, entry.merchantId, entry.sender, entry.requestText],
+    );
+  }
+
+  updateRequestLog(requestId: string, patch: RequestLogPatch): Promise<void> {
+    const json = (value: unknown) => (value === undefined ? null : JSON.stringify(value));
+    return this.update(
+      `update lild.request_log set
+         status = coalesce($2, status), status_code = coalesce($3, status_code),
+         planner_output = coalesce($4::jsonb, planner_output), plan = coalesce($5::jsonb, plan),
+         plan_hash = coalesce($6, plan_hash), review = coalesce($7::jsonb, review),
+         reply = coalesce($8::jsonb, reply), api_id = coalesce($9, api_id),
+         actor_class = coalesce($10, actor_class), actor_id = coalesce($11, actor_id),
+         api_url = coalesce($12, api_url), contract = coalesce($13::jsonb, contract),
+         expires_at = coalesce($14, expires_at), updated_at = now()
+       where request_id = $1`,
+      [
+        requestId,
+        patch.status ?? null,
+        patch.statusCode ?? null,
+        json(patch.plannerOutput),
+        json(patch.plan),
+        patch.planHash ?? null,
+        json(patch.review),
+        json(patch.reply),
+        patch.apiId ?? null,
+        patch.actorClass ?? null,
+        patch.actorId ?? null,
+        patch.apiUrl ?? null,
+        json(patch.contract),
+        patch.expiresAt ?? null,
+      ],
+    );
+  }
+
   /** Linked through the API row, so a caller can never choose which request gets the record. */
   async recordInvocation(apiId: string, outcome: string, at: string): Promise<void> {
     const count = await this.write(
@@ -99,6 +140,10 @@ export class PostgresStore implements StorePort {
       [apiId, outcome, at],
     );
     if (count !== 1) throw new Error("invocation not recorded");
+    await this.write(
+      "update lild.request_log set invocation_count = invocation_count + 1, last_invoked_at = $2, updated_at = now() where api_id = $1",
+      [apiId, at],
+    );
   }
 
   /** Closes the API and its request together, so the two records cannot disagree. */
@@ -111,6 +156,7 @@ export class PostgresStore implements StorePort {
       const requestId = api.rows[0]?.request_id;
       if (!requestId) throw new Error("record not found");
       await client.query("update lild.requests set state = 'expired', reason = 'expired' where request_id = $1", [requestId]);
+      await client.query("update lild.request_log set status = 'expired', updated_at = now() where request_id = $1", [requestId]);
     });
   }
 }

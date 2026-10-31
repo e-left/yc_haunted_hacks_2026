@@ -43,7 +43,7 @@ async function main(): Promise<void> {
     {
       merchantId: env("LILD_MERCHANT_ID"),
       gatewayBaseUrl: env("GATEWAY_BASE_URL"),
-      deadlines: { modelMs: 45_000, remoteMs: 10_000, relayMs: 60_000 },
+      deadlines: { modelMs: 45_000, remoteMs: 10_000, relayMs: 90_000 },
     },
   );
 

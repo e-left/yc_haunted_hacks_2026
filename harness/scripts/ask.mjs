@@ -8,7 +8,21 @@ const question = process.argv[2];
 if (!question) throw new Error('usage: npm run ask -- "<question>"');
 
 const relay = new AgentRelay({ workspaceKey: process.env.RELAY_WORKSPACE_KEY });
-const customer = await relay.workspace.register({ name: `customer-${randomBytes(3).toString("hex")}`, type: "agent" });
+// Relay's hosted API returns 503 when overloaded and marks it retryable.
+async function retrying(call) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await call();
+    } catch (error) {
+      if (attempt === 5 || error.status !== 503) throw error;
+      await new Promise((resolve) => setTimeout(resolve, error.retryAfterMs ?? 6_000 * attempt));
+    }
+  }
+}
+
+const customer = await retrying(() =>
+  relay.workspace.register({ name: `customer-${randomBytes(3).toString("hex")}`, type: "agent" }),
+);
 const merchant = process.env.RELAY_AGENT_NAME || "merchant";
 // The live event can miss a DM, so the durable inbox is polled alongside it.
 const pending = new Promise((resolve, reject) => {
@@ -25,10 +39,10 @@ const pending = new Promise((resolve, reject) => {
     const { items } = await customer.inbox.list({ limit: 5 }).catch(() => ({ items: [] }));
     const item = items.find((entry) => entry.message.from?.name === merchant);
     if (item) done(item.message);
-  }, 4_000);
+  }, 10_000);
 });
 await new Promise((resolve) => setTimeout(resolve, 1_500)); // Let the event stream attach.
-await customer.sendMessage({ to: `@${merchant}`, text: question });
+await retrying(() => customer.sendMessage({ to: `@${merchant}`, text: question, idempotencyKey: `ask-${customer.name}` }));
 const message = await pending;
 // Hide the token by default so demo screens and logs stay clean. Agents read the real value.
 const block = /```json\n([\s\S]*)\n```/.exec(message.text);

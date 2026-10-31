@@ -4,8 +4,29 @@ import type { RelayAgentClient } from "@agent-relay/sdk";
 import type { Reply } from "../contracts/index.js";
 import type { RelayMessage, RelayPort } from "../ports/index.js";
 
-const INBOX_POLL_MS = 5_000;
+const INBOX_POLL_MS = 15_000;
+const INBOX_MAX_BACKOFF_MS = 120_000;
 const INBOX_PAGE = 20;
+const SEND_ATTEMPTS = 4;
+const SEND_RETRY_MS = 6_000;
+
+/** Relay answers 503 when overloaded. Other errors are real failures and are not retried. */
+export function isOverloaded(error: unknown): boolean {
+  const { status } = (error ?? {}) as { status?: unknown };
+  return status === 503 || status === 429 || /overloaded|retry-after/i.test(String(error));
+}
+
+/** The caller supplies an idempotency key, so a retry cannot deliver a second message. */
+export async function withRelayRetry<T>(send: () => Promise<T>, retryMs = SEND_RETRY_MS): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await send();
+    } catch (error) {
+      if (attempt === SEND_ATTEMPTS || !isOverloaded(error)) throw error;
+      await new Promise((resolve) => setTimeout(resolve, retryMs * attempt));
+    }
+  }
+}
 
 export interface RelayEvent {
   message: {
@@ -90,19 +111,38 @@ export class AgentRelayAdapter implements RelayPort {
       }
     };
     const stopEvents = this.relay.addListener("dm.received", (event) => accept(event as RelayEvent));
-    const timer = setInterval(() => void poll().catch(onError), INBOX_POLL_MS);
+    let timer: NodeJS.Timeout;
+    let delay = INBOX_POLL_MS;
+    const schedule = (): void => {
+      timer = setTimeout(() => {
+        poll().then(
+          () => {
+            delay = INBOX_POLL_MS;
+            schedule();
+          },
+          (error) => {
+            delay = Math.min(delay * 2, INBOX_MAX_BACKOFF_MS);
+            onError(error);
+            schedule();
+          },
+        );
+      }, delay);
+    };
+    schedule();
     return () => {
-      clearInterval(timer);
+      clearTimeout(timer);
       stopEvents();
     };
   }
 
   async reply(message: RelayMessage, reply: Reply): Promise<void> {
-    await this.agent.sendMessage({
-      to: `@${message.from}`,
-      text: formatReply(reply),
-      // Per kind: an error sent after a failed delivery must not be dropped as a duplicate.
-      idempotencyKey: `reply-${message.eventId}-${reply.kind}`,
-    });
+    await withRelayRetry(() =>
+      this.agent.sendMessage({
+        to: `@${message.from}`,
+        text: formatReply(reply),
+        // Per kind: an error sent after a failed delivery must not be dropped as a duplicate.
+        idempotencyKey: `reply-${message.eventId}-${reply.kind}`,
+      }),
+    );
   }
 }

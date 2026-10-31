@@ -116,6 +116,60 @@ describe("approved request", () => {
   });
 });
 
+describe("request log", () => {
+  it("records the full journey of an approved request without the token", async () => {
+    const ctx = setup();
+    const outcome = await ctx.harness.handle(message);
+    if (outcome.status !== "active") throw new Error("expected active");
+    expect(ctx.store.logs.get(outcome.requestId)).toMatchObject({
+      sender: message.from,
+      requestText: message.text,
+      status: "active",
+      plan: SHIRTS,
+      actorClass: "TemporaryApi",
+      actorId: outcome.apiId,
+      apiUrl: `https://gateway.test/apis/${outcome.apiId}`,
+    });
+    const log = ctx.store.logs.get(outcome.requestId);
+    expect(log?.review).toMatchObject({ verdict: "approve" });
+    expect(log?.reply).toMatchObject({ kind: "api", token: "[redacted]" });
+    expect(JSON.stringify(log)).not.toContain("secret-token");
+  });
+
+  it("records a refusal with its text and code", async () => {
+    const ctx = setup(() => ({ kind: "refuse", code: "ambiguous", reason: "unclear" }));
+    const outcome = await ctx.harness.handle(message);
+    if (outcome.status !== "refused") throw new Error("expected refused");
+    expect(ctx.store.logs.get(outcome.requestId)).toMatchObject({
+      requestText: message.text,
+      status: "refused",
+      statusCode: "ambiguous",
+      plannerOutput: { reason: "unclear" },
+    });
+  });
+
+  it("records malformed model output for later review", async () => {
+    const ctx = setup(() => ({ nonsense: true }));
+    const outcome = await ctx.harness.handle(message);
+    if (outcome.status !== "error") throw new Error("expected error");
+    expect(ctx.store.logs.get(outcome.requestId)).toMatchObject({ status: "error", plannerOutput: { nonsense: true } });
+  });
+
+  it("stops if the request text cannot be saved", async () => {
+    const ctx = setup();
+    ctx.store.failing.add("startRequestLog");
+    expect(code(await ctx.harness.handle(message))).toBe("audit_unavailable");
+    expect(ctx.planner.calls).toHaveLength(0);
+  });
+
+  it("still serves the customer if a later log update fails", async () => {
+    const ctx = setup();
+    ctx.store.failing.add("updateRequestLog");
+    expect((await ctx.harness.handle(message)).status).toBe("active");
+    expect(ctx.relay.replies[0]?.kind).toBe("api");
+  });
+});
+
 describe("planning interface", () => {
   it("never shows private or custodial fields to the planner", async () => {
     const ctx = setup();

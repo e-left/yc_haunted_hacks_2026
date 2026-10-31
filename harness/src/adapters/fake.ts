@@ -3,6 +3,8 @@ import type {
   InteractionRecord,
   MerchantPolicy,
   Reply,
+  RequestLogEntry,
+  RequestLogPatch,
   RequestRecord,
   RequestState,
 } from "../contracts/index.js";
@@ -112,6 +114,7 @@ export class FakeStore implements StorePort {
   failing = new Set<keyof StorePort>();
   /** Fails `setRequestState` only when moving to this state. */
   failStateTo?: RequestState;
+  logs = new Map<string, RequestLogEntry & RequestLogPatch>();
   /** Fails `addInteraction` only for this type. */
   failInteraction?: InteractionRecord["type"];
 
@@ -146,6 +149,16 @@ export class FakeStore implements StorePort {
     this.guard("addInteraction");
     if (record.type === this.failInteraction) throw new Error("interaction write failed");
     this.interactions.push(record);
+  }
+  async startRequestLog(entry: RequestLogEntry): Promise<void> {
+    this.guard("startRequestLog");
+    this.logs.set(entry.requestId, { ...entry, status: "pending" });
+  }
+  async updateRequestLog(requestId: string, patch: RequestLogPatch): Promise<void> {
+    this.guard("updateRequestLog");
+    const entry = this.logs.get(requestId);
+    if (!entry) throw new Error("unknown request log");
+    this.logs.set(requestId, { ...entry, ...patch });
   }
   async loadPolicy(): Promise<MerchantPolicy> {
     this.guard("loadPolicy");

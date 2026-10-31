@@ -1,12 +1,14 @@
 import { createHash } from "node:crypto";
 import {
   hashPlan,
+  withoutToken,
   PlannerOutputSchema,
   ReviewDecisionSchema,
   type Classification,
   type InteractionRecord,
   type Plan,
   type RefusalCode,
+  type RequestLogPatch,
   type Reply,
   type RequestState,
 } from "../contracts/index.js";
@@ -83,7 +85,15 @@ export class Harness {
     );
   }
 
+  /** The log is for review, so a failed update is reported but never blocks a customer reply. */
+  private async note(requestId: string, patch: RequestLogPatch): Promise<void> {
+    await this.remote("update request log", (signal) =>
+      this.deps.store.updateRequestLog(requestId, patch, signal),
+    ).catch((error) => console.error("request log update failed:", errorMessage(error)));
+  }
+
   private async sendReply(message: RelayMessage, reply: Reply): Promise<void> {
+    await this.note(reply.requestId, { reply: withoutToken(reply) });
     await withDeadline("relay reply", this.config.deadlines.relayMs, () => this.deps.relay.reply(message, reply));
   }
 
@@ -177,6 +187,15 @@ export class Harness {
 
   async handle(message: RelayMessage): Promise<Outcome> {
     const requestId = this.deps.newId();
+    const outcome = await this.run(message, requestId);
+    if (outcome.status !== "duplicate") {
+      const code = "code" in outcome ? outcome.code : undefined;
+      await this.note(requestId, { status: outcome.status, ...(code ? { statusCode: code } : {}) });
+    }
+    return outcome;
+  }
+
+  private async run(message: RelayMessage, requestId: string): Promise<Outcome> {
     const { merchantId } = this.config;
     let created: boolean;
     try {
@@ -203,6 +222,17 @@ export class Harness {
     }
     if (!created) return { status: "duplicate" };
 
+    try {
+      await this.remote("start request log", (signal) =>
+        this.deps.store.startRequestLog(
+          { requestId, eventId: message.eventId, merchantId, sender: message.from, requestText: message.text },
+          signal,
+        ),
+      );
+    } catch (error) {
+      return this.fail(message, requestId, "audit_unavailable", errorMessage(error));
+    }
+
     let policy;
     try {
       policy = await this.remote("load policy", (signal) => this.deps.store.loadPolicy(merchantId, signal));
@@ -218,6 +248,7 @@ export class Harness {
     } catch (error) {
       return this.fail(message, requestId, "planner_failed", errorMessage(error));
     }
+    await this.note(requestId, { plannerOutput: rawPlan });
     const planned = PlannerOutputSchema.safeParse(rawPlan);
     if (!planned.success) return this.fail(message, requestId, "planner_failed", "malformed output");
     if (planned.data.kind === "refuse") {
@@ -232,6 +263,7 @@ export class Harness {
       return this.refuse(message, requestId, checked.code, checked.detail, category);
     }
     const planHash = hashPlan(plan);
+    await this.note(requestId, { plan, planHash });
 
     let rawDecision: unknown;
     try {
@@ -241,6 +273,7 @@ export class Harness {
     } catch (error) {
       return this.fail(message, requestId, "review_unavailable", errorMessage(error));
     }
+    await this.note(requestId, { review: rawDecision });
     const decision = ReviewDecisionSchema.safeParse(rawDecision);
     if (!decision.success) return this.fail(message, requestId, "review_unavailable", "malformed output");
 
@@ -332,13 +365,16 @@ export class Harness {
       return this.closeGrant(message, requestId, apiId, "audit_unavailable", errorMessage(error), apiCreated);
     }
 
+    const url = `${this.config.gatewayBaseUrl}/apis/${apiId}`;
+    const contract = { method: "POST", fields: plan.fields, filters: plan.filters, limit: plan.limit, inputs: [] } as const;
+    await this.note(requestId, { apiId, actorClass: "TemporaryApi", actorId: apiId, apiUrl: url, contract, expiresAt });
     try {
       await this.sendReply(message, {
         kind: "api",
         requestId,
         apiId,
-        url: `${this.config.gatewayBaseUrl}/apis/${apiId}`,
-        contract: { method: "POST", fields: plan.fields, filters: plan.filters, limit: plan.limit, inputs: [] },
+        url,
+        contract: { ...contract, fields: [...contract.fields], filters: [...contract.filters], inputs: [] },
         expiresAt,
         token,
       });

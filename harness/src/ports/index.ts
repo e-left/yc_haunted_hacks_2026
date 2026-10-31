@@ -6,6 +6,8 @@ import type {
   MerchantPolicy,
   Plan,
   Reply,
+  RequestLogEntry,
+  RequestLogPatch,
   RequestRecord,
   RequestState,
 } from "../contracts/index.js";
@@ -74,6 +76,8 @@ export interface StorePort {
   setApiState(apiId: string, state: RequestState, signal: AbortSignal): Promise<void>;
   addInteraction(record: InteractionRecord, signal: AbortSignal): Promise<void>;
   loadPolicy(merchantId: string, signal: AbortSignal): Promise<MerchantPolicy>;
+  startRequestLog(entry: RequestLogEntry, signal: AbortSignal): Promise<void>;
+  updateRequestLog(requestId: string, patch: RequestLogPatch, signal: AbortSignal): Promise<void>;
 }
 
 export interface Dependencies {
