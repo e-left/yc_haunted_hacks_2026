@@ -8,7 +8,7 @@ const reviewable = (resource: string, field_name: string) => ({ resource, field_
 describe("policy from data_classifications", () => {
   it("hides unclassified fields", () => {
     const policy = buildPolicy("m", [reviewable("products", "name")]);
-    expect(Object.keys(policy.resources.products!.fields)).toEqual(["name"]);
+    expect(Object.keys(policy.resources.products!.fields).sort()).toEqual(["garment", "name"]);
   });
 
   it("never exposes private supplier cost", () => {

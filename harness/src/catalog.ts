@@ -20,6 +20,13 @@ export const PRODUCT_FIELDS: Record<string, CatalogField> = {
   asin: { table: "products", column: "asin", type: "string", sql: "p.asin" },
   variant_id: { table: "product_variants", column: "id", type: "string", sql: "v.id" },
   size: { table: "product_variants", column: "size", type: "string", sql: "v.size" },
+  // The schema has no product type, so it is derived from the public product name.
+  garment: {
+    table: "products",
+    column: "name",
+    type: "string",
+    sql: "(case when p.name ~* 'hood|sweatshirt|pullover|fleece' then 'hoodie' else 't-shirt' end)",
+  },
   name: { table: "products", column: "name", type: "string", sql: "p.name" },
   short_name: { table: "products", column: "short_name", type: "string", sql: "p.short_name" },
   brand: { table: "products", column: "brand", type: "string", sql: "p.brand" },
@@ -55,7 +62,8 @@ export function buildPolicy(merchantId: string, rows: ClassificationRow[]): Merc
     products: {
       category: "product_discovery",
       identifierFields: ["product_id", "variant_id"],
-      description: "T-shirts sold by this merchant, one row per product and size. Every row is a shirt. quantity is units in stock.",
+      description:
+        "Clothing sold by this merchant, one row per product and size. garment is exactly 't-shirt' or 'hoodie'; when a request names a garment type, filter on it (shirts and tees mean 't-shirt', sweatshirts mean 'hoodie'). quantity is units in stock.",
       fields,
     },
   };
