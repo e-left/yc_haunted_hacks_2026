@@ -1,0 +1,16 @@
+[Unit]
+Description=Amazombie storefront
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/srv/amazombie-demo
+ExecStart=/usr/bin/python3 /srv/amazombie-demo/serve.py --bind 0.0.0.0 --port 8000
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

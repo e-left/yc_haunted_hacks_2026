@@ -330,21 +330,13 @@ try {
   if (!Array.isArray(products) || products.length === 0) throw new Error('No demo products found');
   if (supabase) {
     try {
-      const localByAsin = new Map(products.map((product) => [product.asin, product]));
       const remoteRows = await supabase.catalog();
-      const remoteProducts = remoteRows.map((row) => {
-        const local = localByAsin.get(row.asin);
-        if (!local || !Number.isInteger(row.price_cents) || !Array.isArray(row.sizes) || !row.sizes.length) return null;
-        return {
-          ...local,
-          priceUsd: row.price_cents / 100,
-          sizes: row.sizes,
-          defaultSize: row.sizes.includes(local.defaultSize) ? local.defaultSize : row.sizes[0],
-          priceBasis: 'Sample US dollar price from the Amazombie demo catalog'
-        };
-      }).filter(Boolean);
-      if (!remoteProducts.length) throw new Error('No Amazombie products found in Supabase');
-      products = remoteProducts;
+      if (!remoteRows.length || remoteRows.some((product) =>
+        !product.asin || !product.name || !product.image ||
+        !Array.isArray(product.sizes) || !product.sizes.length ||
+        !Array.isArray(product.highlights) || !Number.isFinite(product.priceUsd)
+      )) throw new Error('Supabase returned an incomplete Amazombie catalog');
+      products = remoteRows;
     } catch (error) {
       console.error('Supabase catalog unavailable:', error);
       supabase = null;

@@ -2,10 +2,12 @@
 
 Starter monorepo for the product described in [SPEC.md](SPEC.md). See [product architecture](docs/architecture.md) for boundaries, implementation order, and the security decisions that remain open.
 
+The [Amazombie storefront demo](https://amazombie-yc.style.dev/) runs on Freestyle with its catalog and demo checkout backed by Supabase.
+
 - `apps/web` — React merchant interface
 - `apps/api` — Bun/TypeScript API and gateway
 - `packages/contracts` — shared API types
-- `supabase/migrations` — database schema and policies, including the Amazombie demo catalog and order RPC
+- `supabase/migrations` — database schema and policies, including the Amazombie catalog and order RPC
 
 ## Development
 

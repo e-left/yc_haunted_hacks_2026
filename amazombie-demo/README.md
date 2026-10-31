@@ -1,5 +1,7 @@
 # Amazombie demo storefront
 
+Live demo: [amazombie-yc.style.dev](https://amazombie-yc.style.dev/), hosted on Freestyle and connected to Supabase project `jhzbfupmolwqdjlgwuss`.
+
 This storefront opens on a T-shirt results grid with Amazombie branding and the user-supplied logo. Shoppers can search, filter by captured color text or sample sizes, sort results, choose a size and quantity, add products to a basket, and complete a demo checkout. Its catalog contains the four ASINs supplied by the user plus 20 more T-shirts indexed from marketplace search results. Product names in the demo use Amazombie branding; the source URLs remain intact for provenance.
 
 | ASIN | Listing |
@@ -22,11 +24,13 @@ Open `http://localhost:4173/` in a browser. No package install or build step is 
 
 ## Connect Supabase
 
-1. Apply [`../supabase/migrations/20261031000000_amazombie_demo.sql`](../supabase/migrations/20261031000000_amazombie_demo.sql) to project `jhzbfupmolwqdjlgwuss`, for example with `supabase link --project-ref jhzbfupmolwqdjlgwuss` followed by `supabase db push` from the repository root.
+1. Apply [`../supabase/migrations/20261031220000_amazombie_demo_checkout.sql`](../supabase/migrations/20261031220000_amazombie_demo_checkout.sql) to project `jhzbfupmolwqdjlgwuss`. It extends the existing `amazombie` merchant's 24 products and variants; it does not create a duplicate catalog.
 2. Copy the project's publishable key into `.env.local` as `SUPABASE_PUBLISHABLE_KEY` (a legacy anon key can be supplied as `SUPABASE_ANON_KEY`). The project URL is already in `.env.example`. The server also reads a root `.env.local` if you already use one.
-3. Restart `serve.py`. The storefront then loads its sample prices and sizes from Supabase and saves demo orders with the `amazombie_place_demo_order` RPC. If the connection fails, it shows a notice and uses the local demo catalog and checkout.
+3. Restart `serve.py`. The storefront then loads its product records from Supabase through `amazombie_catalog` and saves demo orders with `amazombie_place_demo_order`. If the connection fails, it shows a notice and uses the local demo catalog and checkout.
 
 The local server exposes only the URL and publishable key to the browser. The SQL function calculates totals from database prices. Delivery fields stay in the browser; the database stores selected items, total and timestamp only. No payment is collected.
+
+The Freestyle VM runs [`deploy/amazombie.service`](deploy/amazombie.service), serving this directory on port 8000. Redeploy changed storefront files with `freestyle vm scp amazombie-demo amazombie-demo:/srv` from the repository root, then restart the service with `freestyle vm exec amazombie-demo -- sudo systemctl restart amazombie.service`.
 
 ## Data provenance and limits
 

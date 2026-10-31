@@ -18,7 +18,11 @@ export function createSupabaseClient(config = window.AMAZOMBIE_SUPABASE) {
 
   return {
     async catalog() {
-      const rows = await request('amazombie_products?select=asin,price_cents,sizes&order=sort_order.asc');
+      const rows = await request('rpc/amazombie_catalog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+      });
       if (!Array.isArray(rows)) throw new Error('Supabase returned an invalid catalog');
       return rows;
     },
