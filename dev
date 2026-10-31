@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Copy only dependency manifests into the flake source, never local secrets.
+flake_dir=$(mktemp -d "${TMPDIR:-/tmp}/amazombie-nix.XXXXXXXX")
+trap 'rm -rf "$flake_dir"' EXIT
+cp flake.nix flake.lock package.json package-lock.json "$flake_dir/"
+
+if [ "$#" -gt 0 ]; then
+  nix develop --extra-experimental-features 'nix-command flakes' "path:$flake_dir" --command "$@"
+else
+  nix develop --extra-experimental-features 'nix-command flakes' "path:$flake_dir"
+fi

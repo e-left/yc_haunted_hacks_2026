@@ -1,0 +1,22 @@
+.dashboard { max-width: 1100px; min-height: 100vh; margin: 0 auto; padding: 48px 24px; color: #1d2939; }
+.dashboard-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.dashboard .eyebrow { margin: 0 0 12px; color: #536780; font-size: 13px; font-weight: 700; letter-spacing: .12em; }
+.dashboard h1 { margin: 0; font-size: clamp(32px, 5vw, 44px); }
+.dashboard .intro { max-width: 600px; margin: 14px 0 0; color: #596779; line-height: 1.6; }
+.dashboard .notice { margin: 36px 0 44px; padding: 20px 24px; border: 1px solid #d1dbe8; border-radius: 8px; background: #edf3fa; }
+.dashboard .notice p { margin: 8px 0 0; color: #475c75; line-height: 1.5; }
+.dashboard h2 { margin: 0 0 12px; font-size: 21px; }
+.dashboard-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+.dashboard-section-heading p { margin: 0; color: #596779; font-size: 14px; }
+.dashboard-catalog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.dashboard-product { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 10px; border: 1px solid #e0e5eb; border-radius: 8px; color: #1d2939; }
+.dashboard-product:hover { border-color: #2167a5; text-decoration: none; }
+.dashboard-product img { width: 54px; height: 54px; object-fit: contain; }
+.dashboard-product span:nth-child(2) { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 5px; }
+.dashboard-product small, .dashboard-product span:last-child { color: #596779; font-size: 12px; }
+.dashboard .planned { margin-top: 44px; }
+.dashboard .feature-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.dashboard .feature-grid article { padding: 24px; border: 1px solid #e0e5eb; border-radius: 8px; background: white; }
+.dashboard h3 { margin: 0 0 10px; font-size: 16px; }
+.dashboard .feature-grid p { margin: 0; color: #596779; font-size: 14px; line-height: 1.6; }
+@media (max-width: 700px) { .dashboard { padding: 32px 20px; } .dashboard-header { flex-direction: column; } .dashboard .feature-grid, .dashboard-catalog { grid-template-columns: 1fr; } }

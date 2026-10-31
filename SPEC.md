@@ -14,13 +14,14 @@ The API is generated as a structured plan and a request-specific actor instance,
 
 The merchant assigns data to these mandatory access control categories. Access is denied by default until a category and applicable policy are configured.
 
-| Category   | Meaning                                                                         | Access rule                                                                                                                                                           |
-| ---------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Private    | Merchant-only data, such as supplier costs.                                     | Unavailable to customer-facing plans and execution, even if the customer or an agent requests it. The reviewing agent cannot grant access.                            |
-| Custodial  | A customer’s own data, such as their profile and cart.                          | Accessible only for the authenticated customer who owns it and only within the merchant’s permitted operations and fields. Security review cannot override ownership. |
-| Reviewable | Other merchant data made eligible for customer use, such as product dimensions. | Available for the specific request only after the security review agent approves its use, subject to merchant-defined restrictions and deterministic enforcement.     |
+| Category | Meaning | Access rule |
+| --- | --- | --- |
+| Public | Data the merchant publishes to shoppers, such as listing details and shopper prices. | Available to shoppers and customer agents without per-request review, within the merchant's published scope. |
+| Private | Merchant-only data, such as supplier costs. | Unavailable to customer-facing plans and execution, even if the customer or an agent requests it. The reviewing agent cannot grant access. |
+| Custodial | A customer’s own data, such as their profile and cart. | Accessible only for the authenticated customer who owns it and only within the merchant’s permitted operations and fields. Security review cannot override ownership. |
+| Reviewable | Other merchant data made eligible for customer use, such as product dimensions. | Available for the specific request only after the security review agent approves its use, subject to merchant-defined restrictions and deterministic enforcement. |
 
-These categories govern data used in output, filters, joins, sorting, and derived results: even filtering on a field can disclose information. The merchant decides which data is private or custodial and what reviewable data is eligible for disclosure. Unclassified data remains inaccessible. A merchant policy change is an authenticated administrative action, never an agent decision.
+These categories govern data used in output, filters, joins, sorting, and derived results: even filtering on a field can disclose information. The merchant decides what to publish, which data is private or custodial, and what reviewable data is eligible for disclosure. Unclassified data remains inaccessible. A merchant policy change is an authenticated administrative action, never an agent decision.
 
 The database interface exposes to the planning agent only data available for the current request’s evaluation; private data and other customers’ custodial data are not exposed. Reviewable data is identifiable for proposing a plan, but its values are not available to execution until approval. The execution path uses restricted credentials and database-enforced grants and row policies; neither the planner nor reviewer can change the classifications, database permissions, or authenticated customer identity. The review agent is the approval decision-maker for reviewable data, not the enforcement boundary for private or custodial data.
 
@@ -42,7 +43,7 @@ Categories group related APIs and interactions by their purpose, such as product
 
 ## Functional requirements
 
-- **FR-1 — Classification:** The merchant can configure private, custodial, and reviewable data and associated field, row, operation, and disclosure restrictions. Unclassified data is inaccessible. A private field is unavailable for all customer-facing use.
+- **FR-1 — Classification:** The merchant can configure public, private, custodial, and reviewable data and associated field, row, operation, and disclosure restrictions. Unclassified data is inaccessible. A private field is unavailable for all customer-facing use.
 - **FR-2 — Identity and ownership:** Custodial access requires a verified customer identity bound to the invocation. Database row policies enforce ownership independently of model output and request text. A customer cannot select a different owner by changing input or supplying an ID.
 - **FR-3 — Request and plan:** The system receives untrusted natural language and generates a versioned, structured, read-only plan using the exposed interface. The plan specifies resources, fields, filters, limits, inputs, and outputs. Unsupported or ambiguous requests are rejected or clarified; they are not silently broadened.
 - **FR-4 — Review:** Before execution, a security agent reviews each use of reviewable data for the specific request against merchant policy. Approval is scoped to the plan, permitted fields and rows, purpose, and expiry. A denial, timeout, malformed response, or unavailable reviewer prevents execution. The reviewer cannot override private classification, custodial ownership, or other merchant restrictions.
