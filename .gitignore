@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .envrc
+.env.local
 *.tsbuildinfo
 supabase/.branches/
 supabase/.temp/
