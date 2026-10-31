@@ -20,7 +20,7 @@
       ],
       "defaultSize": "XL",
       "priceUsd": 16.99,
-      "priceBasis": "Sample US dollar price; not a live Amazon offer",
+      "priceBasis": "Sample US dollar price; not a live offer",
       "rating": 4.4,
       "reviewCount": "14,646",
       "badge": "#1 Best Seller",
@@ -35,9 +35,9 @@
     },
     {
       "asin": "B09TPJXFH8",
-      "brand": "Amazon Essentials",
-      "name": "Amazon Essentials Men's Cotton Crewneck T-Shirts, Pack of 2",
-      "shortName": "Amazon Essentials Black 2-Pack",
+      "brand": "Amazombie Essentials",
+      "name": "Amazombie Essentials Men's Cotton Crewneck T-Shirts, Pack of 2",
+      "shortName": "Amazombie Essentials Black 2-Pack",
       "color": "Black/Black (Pack of 2)",
       "packSize": 2,
       "fabric": "100% cotton for solid colors",
@@ -52,7 +52,7 @@
       ],
       "defaultSize": "XL",
       "priceUsd": 13.99,
-      "priceBasis": "Sample US dollar price; not a live Amazon offer",
+      "priceBasis": "Sample US dollar price; not a live offer",
       "rating": null,
       "reviewCount": null,
       "badge": null,
@@ -84,7 +84,7 @@
       ],
       "defaultSize": "L",
       "priceUsd": 14.99,
-      "priceBasis": "Sample US dollar price; not a live Amazon offer",
+      "priceBasis": "Sample US dollar price; not a live offer",
       "rating": null,
       "reviewCount": null,
       "badge": null,
@@ -117,7 +117,7 @@
       ],
       "defaultSize": "XL",
       "priceUsd": 24.99,
-      "priceBasis": "Sample US dollar price; not a live Amazon offer",
+      "priceBasis": "Sample US dollar price; not a live offer",
       "rating": null,
       "reviewCount": null,
       "badge": null,
@@ -149,14 +149,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0BJZSSMVZ-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0BJZSSMVZ",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -180,14 +180,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0F6D6PLX4-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0F6D6PLX4",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -211,14 +211,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0DK978M4D-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0DK978M4D",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -242,14 +242,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0GYGD22JP-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0GYGD22JP",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -273,14 +273,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B00KBZOTKG-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B00KBZOTKG",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -304,14 +304,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B071DVQLT2-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B071DVQLT2",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -335,14 +335,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0CCBWC2K3-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0CCBWC2K3",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -366,14 +366,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0D2PKQGQV-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0D2PKQGQV",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -397,14 +397,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0G3NKZ6KZ-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0G3NKZ6KZ",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -428,14 +428,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0D4M3WMSK-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0D4M3WMSK",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -459,14 +459,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B07612XWPL-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B07612XWPL",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -490,14 +490,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B07M8NX6YB-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B07M8NX6YB",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -521,14 +521,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B077ZJC1N9-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B077ZJC1N9",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -552,14 +552,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B01MTXCBVF-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B01MTXCBVF",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -583,23 +583,23 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B07MKKM952-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B07MKKM952",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
     },
     {
       "asin": "B09TPLS41B",
-      "brand": "Amazon Essentials",
-      "name": "Amazon Essentials Men's Short-Sleeve Crewneck T-Shirts",
-      "shortName": "Amazon Essentials Crew Tee",
+      "brand": "Amazombie Essentials",
+      "name": "Amazombie Essentials Men's Short-Sleeve Crewneck T-Shirts",
+      "shortName": "Amazombie Essentials Crew Tee",
       "color": "As pictured",
       "packSize": null,
       "fabric": "Not verified",
@@ -614,23 +614,23 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B09TPLS41B-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B09TPLS41B",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
     },
     {
       "asin": "B0DN5TR7VL",
-      "brand": "Amazon Essentials",
-      "name": "Amazon Essentials Men's Relaxed Fit Cotton Jersey T-Shirt, Soft Fabric",
-      "shortName": "Amazon Essentials Relaxed Tee",
+      "brand": "Amazombie Essentials",
+      "name": "Amazombie Essentials Men's Relaxed Fit Cotton Jersey T-Shirt, Soft Fabric",
+      "shortName": "Amazombie Essentials Relaxed Tee",
       "color": "As pictured",
       "packSize": null,
       "fabric": "Cotton jersey",
@@ -645,14 +645,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0DN5TR7VL-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0DN5TR7VL",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -676,14 +676,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B0C1Z4KFGZ-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B0C1Z4KFGZ",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -707,14 +707,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B08F2P8CS9-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B08F2P8CS9",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]
@@ -738,14 +738,14 @@
       ],
       "defaultSize": "M",
       "priceUsd": null,
-      "priceBasis": "Current price not captured; see the original Amazon listing",
+      "priceBasis": "Current price not captured; see the linked source listing",
       "rating": null,
       "reviewCount": null,
       "badge": null,
       "image": "assets/B07D126W6P-main.jpg",
       "sourceUrl": "https://www.amazon.com/dp/B07D126W6P",
       "highlights": [
-        "T-shirt listing sourced from Amazon",
+        "T-shirt in the Amazombie catalog",
         "Main product image shown as listed",
         "See original listing for variant, care, and availability details"
       ]

@@ -1,19 +1,30 @@
 const app = document.querySelector('#app');
 const searchInput = document.querySelector('#search-input');
-const searchResults = document.querySelector('#search-results');
 const searchForm = document.querySelector('#search-form');
 const notice = document.querySelector('#delivery-popover');
 
 let products = [];
-let selectedAsin = 'B0DK3XH9HH';
+let selectedAsin = null;
+let searchQuery = '';
+let colorFilter = '';
+let sizeFilter = '';
+let sortBy = 'featured';
 let galleryView = 'main';
 const selectedSizes = new Map();
+const colorOptions = [
+  { name: 'Black', value: '#202124' },
+  { name: 'White', value: '#ffffff' },
+  { name: 'Grey', value: '#8b8d8e' },
+  { name: 'Navy', value: '#243e64' },
+  { name: 'Green', value: '#79a55c' },
+  { name: 'Burgundy', value: '#71363d' }
+];
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 })[character]);
 
-const activeProduct = () => products.find((product) => product.asin === selectedAsin) ?? products[0];
+const activeProduct = () => products.find((product) => product.asin === selectedAsin);
 
 function formatPrice(value) {
   const [whole, cents] = Number(value).toFixed(2).split('.');
@@ -21,6 +32,74 @@ function formatPrice(value) {
 }
 
 const compactPrice = (product) => product.priceUsd == null ? 'View price' : `$${product.priceUsd.toFixed(2)}`;
+
+function currentHomeUrl() {
+  return searchQuery.trim() ? `?q=${encodeURIComponent(searchQuery.trim())}` : location.pathname;
+}
+
+function matchingProducts(query) {
+  const q = query.trim().toLowerCase();
+  return products.filter((product) => {
+    const matchesText = !q || [product.name, product.shortName, product.brand, product.color, product.fabric, product.asin, ...product.highlights]
+      .some((value) => String(value).toLowerCase().includes(q));
+    const normalizedColor = product.color.toLowerCase().replace(/gray/g, 'grey');
+    return matchesText && (!colorFilter || normalizedColor.includes(colorFilter.toLowerCase())) && (!sizeFilter || product.sizes.includes(sizeFilter));
+  }).sort((a, b) => {
+    if (sortBy === 'price') return (a.priceUsd ?? Infinity) - (b.priceUsd ?? Infinity);
+    if (sortBy === 'name') return a.name.localeCompare(b.name);
+    return 0;
+  });
+}
+
+function homeCard(product) {
+  return `<article class="result-card">
+    <button class="result-image" type="button" data-asin="${product.asin}" aria-label="View ${escapeHtml(product.shortName)}">
+      ${product.badge ? `<span class="result-badge">${escapeHtml(product.badge.replace(/^#1 /, ''))}</span>` : ''}
+      <img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.shortName)}" loading="lazy" />
+    </button>
+    <div class="result-info">
+      <span class="result-brand">${escapeHtml(product.brand)}</span>
+      <button class="result-title" type="button" data-asin="${product.asin}">${escapeHtml(product.name)}</button>
+      ${product.rating ? `<div class="result-rating"><span>${product.rating.toFixed(1)}</span><span class="stars" aria-label="${product.rating} out of 5 stars">★★★★★</span><span class="review-count">(${escapeHtml(product.reviewCount)})</span></div>` : '<div class="result-rating result-rating-empty">Details from the source listing</div>'}
+      <div class="result-price">${product.priceUsd == null ? '<span class="price-prompt">See price on listing</span>' : `<strong>${formatPrice(product.priceUsd)}</strong><small>Sample price</small>`}</div>
+      <p class="result-color">${escapeHtml(product.color)}</p>
+      <button class="result-action" type="button" data-asin="${product.asin}">View details</button>
+    </div>
+  </article>`;
+}
+
+function renderHome() {
+  selectedAsin = null;
+  const matches = matchingProducts(searchQuery);
+  document.title = 'Amazombie | T-shirts for the living';
+  app.innerHTML = `
+    <section class="home-hero" aria-label="Amazombie introduction">
+      <div><span class="hero-eyebrow">THE BASICS ARE ALIVE</span><h1>Dead simple tees.<br /><em>Seriously good finds.</em></h1><p>Everyday T-shirts, unearthed in one place.</p></div>
+      <div class="hero-stamp"><span>✦</span><strong>${products.length}</strong><small>tees in the crypt</small></div>
+    </section>
+    <div class="home-context"><span>Clothing <b>›</b> Men's T-Shirts</span><span>Sample prices · original listing links on every product page</span></div>
+    <div class="results-layout" id="results">
+      <aside class="filters" aria-label="Filter T-shirts">
+        <div class="filters-top"><h2>Filters</h2><button type="button" data-clear-filters>Clear</button></div>
+        <section class="filter-group"><h3>Colour</h3><div class="swatches">
+          ${colorOptions.map((color) => `<button type="button" class="swatch ${colorFilter === color.name ? 'active' : ''}" data-color="${color.name}" title="${color.name}" aria-label="Filter ${color.name} T-shirts" aria-pressed="${colorFilter === color.name}" style="--swatch:${color.value}"><span></span></button>`).join('')}
+        </div><p class="filter-hint">Colours are filtered from captured listing text.</p></section>
+        <section class="filter-group"><h3>Men's Size</h3><div class="filter-sizes">
+          ${['S', 'M', 'L', 'XL', 'XXL', '3XL'].map((size) => `<button type="button" class="filter-size ${sizeFilter === size ? 'active' : ''}" data-filter-size="${size}" aria-pressed="${sizeFilter === size}">${size}</button>`).join('')}
+        </div><p class="filter-hint">Size choices are illustrative.</p></section>
+        <div class="filter-note"><span>✦</span><strong>Shop the living basics</strong><p>Pick a shirt to see colors, sizes, fabric details, and its original listing.</p></div>
+      </aside>
+      <section class="results-main" aria-label="T-shirt results">
+        <div class="results-heading"><div><span class="results-kicker">AMAZOMBIE FINDS</span><h2>${searchQuery.trim() ? `Results for “${escapeHtml(searchQuery.trim())}”` : 'T-shirts worth resurrecting'}</h2><p>${matches.length} ${matches.length === 1 ? 'result' : 'results'}${colorFilter ? ` · ${escapeHtml(colorFilter)}` : ''}${sizeFilter ? ` · Size ${escapeHtml(sizeFilter)}` : ''}</p></div><label class="sort-control">Sort by <select id="sort-select"><option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Featured</option><option value="price" ${sortBy === 'price' ? 'selected' : ''}>Price: low to high</option><option value="name" ${sortBy === 'name' ? 'selected' : ''}>Name</option></select></label></div>
+        ${matches.length ? `<div class="result-grid">${matches.map(homeCard).join('')}</div>` : '<div class="empty-results"><strong>No tees in this corner of the crypt.</strong><p>Try another search or clear the filters.</p><button type="button" data-clear-filters>Clear filters</button></div>'}
+      </section>
+    </div>`;
+  app.querySelectorAll('[data-asin]').forEach((button) => button.addEventListener('click', () => chooseProduct(button.dataset.asin)));
+  app.querySelectorAll('[data-color]').forEach((button) => button.addEventListener('click', () => { colorFilter = colorFilter === button.dataset.color ? '' : button.dataset.color; renderHome(); }));
+  app.querySelectorAll('[data-filter-size]').forEach((button) => button.addEventListener('click', () => { sizeFilter = sizeFilter === button.dataset.filterSize ? '' : button.dataset.filterSize; renderHome(); }));
+  app.querySelectorAll('[data-clear-filters]').forEach((button) => button.addEventListener('click', () => { colorFilter = ''; sizeFilter = ''; searchQuery = ''; searchInput.value = ''; history.replaceState({}, '', location.pathname); renderHome(); }));
+  app.querySelector('#sort-select').addEventListener('change', (event) => { sortBy = event.target.value; renderHome(); });
+}
 
 function galleryContent(product) {
   if (galleryView === 'fabric') {
@@ -36,7 +115,7 @@ function galleryThumb(product, view, label, content) {
   return `<button class="gallery-thumb ${galleryView === view ? 'selected' : ''}" type="button" data-view="${view}" aria-label="${escapeHtml(label)}" aria-pressed="${galleryView === view}">${content}</button>`;
 }
 
-function render() {
+function renderProduct() {
   const product = activeProduct();
   if (!product) return;
   document.title = `${product.shortName} | Amazombie`;
@@ -45,11 +124,11 @@ function render() {
   const rating = product.rating ? `<div class="rating"><span>${product.rating.toFixed(1)}</span><span class="stars" aria-label="${product.rating} out of 5 stars">★★★★★</span><span class="rating-chevron">⌄</span><a href="#product-details">(${escapeHtml(product.reviewCount)})</a><span class="rating-divider">|</span><a href="#product-details">Search this page</a></div>` : '';
   const badge = product.badge ? `<div class="ranking"><strong>${escapeHtml(product.badge)}</strong><a href="#catalog">in Men's T-Shirts</a></div>` : '';
   const priceLabel = product.priceUsd == null ? 'Price not captured' : 'Sample price';
-  const priceDisplay = product.priceUsd == null ? `<a class="price-unavailable" href="${escapeHtml(product.sourceUrl)}" target="_blank" rel="noopener noreferrer">See price on Amazon ›</a>` : formatPrice(product.priceUsd);
+  const priceDisplay = product.priceUsd == null ? `<a class="price-unavailable" href="${escapeHtml(product.sourceUrl)}" target="_blank" rel="noopener noreferrer">See price on source listing ›</a>` : formatPrice(product.priceUsd);
 
   app.innerHTML = `
-    <div class="catalog-strip"><span>Halloween hackathon demo</span><strong>${products.length} T-shirts in the catalog</strong><a href="#browse">Browse all shirts ↓</a></div>
-    <div class="breadcrumbs"><span>Fashion</span><span>›</span><span>Men</span><span>›</span><span>Clothing</span><span>›</span><span>T-Shirts</span><span>›</span><strong>${escapeHtml(product.brand)}</strong></div>
+    <div class="catalog-strip"><span>AMAZOMBIE FINDS</span><strong>${products.length} T-shirts in the catalog</strong><button type="button" data-go-home>← All T-shirts</button></div>
+    <div class="breadcrumbs"><button type="button" data-go-home>All T-shirts</button><span>›</span><strong>${escapeHtml(product.brand)}</strong></div>
     <div class="product-layout">
       <section class="media-column" aria-label="Product media">
         <div class="gallery">
@@ -121,8 +200,19 @@ function chooseProduct(asin) {
   if (!products.some((product) => product.asin === asin)) return;
   selectedAsin = asin;
   galleryView = 'main';
-  searchResults.hidden = true;
-  render();
+  history.pushState({}, '', `?asin=${encodeURIComponent(asin)}`);
+  renderProduct();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goHome(clearSearch = false) {
+  selectedAsin = null;
+  if (clearSearch) {
+    searchQuery = '';
+    searchInput.value = '';
+  }
+  history.pushState({}, '', currentHomeUrl());
+  renderHome();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -146,12 +236,13 @@ function answerQuestion(question, product) {
 
 function bindProductEvents() {
   app.querySelectorAll('[data-asin]').forEach((button) => button.addEventListener('click', () => chooseProduct(button.dataset.asin)));
+  app.querySelectorAll('[data-go-home]').forEach((button) => button.addEventListener('click', () => goHome()));
   app.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => {
     const track = app.querySelector('#browse-track');
     track.scrollBy({ left: Number(button.dataset.scroll) * Math.max(track.clientWidth * 0.8, 250), behavior: 'smooth' });
   }));
-  app.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => { galleryView = button.dataset.view; render(); }));
-  app.querySelectorAll('[data-size]').forEach((button) => button.addEventListener('click', () => { selectedSizes.set(activeProduct().asin, button.dataset.size); render(); }));
+  app.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => { galleryView = button.dataset.view; renderProduct(); }));
+  app.querySelectorAll('[data-size]').forEach((button) => button.addEventListener('click', () => { selectedSizes.set(activeProduct().asin, button.dataset.size); renderProduct(); }));
   app.querySelectorAll('[data-question]').forEach((button) => button.addEventListener('click', () => {
     const answer = app.querySelector('#ask-answer');
     answer.textContent = answerQuestion(button.dataset.question, activeProduct());
@@ -192,27 +283,30 @@ function showToast(message) {
   setTimeout(() => toast.remove(), 2800);
 }
 
-function matchingProducts(query) {
-  const q = query.trim().toLowerCase();
-  if (!q) return products;
-  return products.filter((product) => [product.name, product.shortName, product.brand, product.color, product.fabric, product.asin, ...product.highlights].some((value) => value.toLowerCase().includes(q)));
-}
-
-function showSearchResults() {
-  const matches = matchingProducts(searchInput.value);
-  searchResults.innerHTML = `<p class="results-heading">${matches.length} of ${products.length} products</p>${matches.length ? matches.map((product) => `<button type="button" data-search-asin="${product.asin}"><img src="${escapeHtml(product.image)}" alt="" /><span><strong>${escapeHtml(product.shortName)}</strong><small>${escapeHtml(product.color)}</small></span><b>${compactPrice(product)}</b></button>`).join('') : '<p class="no-results">No matching T-shirts in this demo catalog.</p>'}`;
-  searchResults.hidden = false;
-  searchResults.querySelectorAll('[data-search-asin]').forEach((button) => button.addEventListener('click', () => chooseProduct(button.dataset.searchAsin)));
-}
-
-searchForm.addEventListener('submit', (event) => { event.preventDefault(); showSearchResults(); });
-searchInput.addEventListener('focus', showSearchResults);
-searchInput.addEventListener('input', showSearchResults);
-searchInput.addEventListener('keydown', (event) => { if (event.key === 'Escape') searchResults.hidden = true; });
-document.addEventListener('click', (event) => { if (!searchForm.contains(event.target)) searchResults.hidden = true; });
+searchForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  searchQuery = searchInput.value.trim();
+  goHome();
+  document.querySelector('#results')?.scrollIntoView({ behavior: 'smooth' });
+});
+searchInput.addEventListener('input', () => {
+  if (selectedAsin || !products.length) return;
+  searchQuery = searchInput.value;
+  history.replaceState({}, '', currentHomeUrl());
+  renderHome();
+});
+document.querySelectorAll('[data-home], .brand').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); goHome(true); }));
+document.querySelector('[data-browse-home]').addEventListener('click', (event) => { event.preventDefault(); goHome(); document.querySelector('#results')?.scrollIntoView({ behavior: 'smooth' }); });
+window.addEventListener('popstate', () => {
+  const params = new URLSearchParams(location.search);
+  selectedAsin = products.some((product) => product.asin === params.get('asin')) ? params.get('asin') : null;
+  searchQuery = params.get('q') ?? '';
+  searchInput.value = searchQuery;
+  if (selectedAsin) renderProduct(); else renderHome();
+});
 document.querySelector('#delivery-button').addEventListener('click', () => { notice.hidden = !notice.hidden; });
 document.querySelector('#dismiss-notice').addEventListener('click', () => { notice.hidden = true; });
-document.querySelector('#explore-catalog').addEventListener('click', () => { notice.hidden = true; document.querySelector('#browse')?.scrollIntoView({ behavior: 'smooth' }); });
+document.querySelector('#explore-catalog').addEventListener('click', () => { notice.hidden = true; goHome(); document.querySelector('#results')?.scrollIntoView({ behavior: 'smooth' }); });
 document.querySelector('#cart-button').addEventListener('click', () => showToast('Checkout is outside this demo.'));
 
 try {
@@ -221,9 +315,12 @@ try {
   const catalog = await response.json();
   products = catalog.products;
   if (!Array.isArray(products) || products.length === 0) throw new Error('No demo products found');
-  const requestedAsin = new URLSearchParams(location.search).get('asin');
-  if (products.some((product) => product.asin === requestedAsin)) selectedAsin = requestedAsin;
-  render();
+  const params = new URLSearchParams(location.search);
+  const requestedAsin = params.get('asin');
+  selectedAsin = products.some((product) => product.asin === requestedAsin) ? requestedAsin : null;
+  searchQuery = params.get('q') ?? '';
+  searchInput.value = searchQuery;
+  if (selectedAsin) renderProduct(); else renderHome();
 } catch (error) {
   console.error(error);
   app.innerHTML = '<div class="loading error">The product catalog could not be loaded. Serve this folder with a local web server and reload.</div>';
