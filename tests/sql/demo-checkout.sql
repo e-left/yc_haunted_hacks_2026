@@ -5,7 +5,7 @@ do $$
 declare
   order_result jsonb;
 begin
-  if jsonb_array_length(public.amazombie_catalog()) <> 24 then
+  if jsonb_array_length(public.amazombie_catalog()) <> (select count(*) from public.storefront_catalog) then
     raise exception 'the catalog RPC did not return all seeded products';
   end if;
   order_result := public.amazombie_place_demo_order('[{"asin":"B0DK3XH9HH","size":"XL","quantity":2}]'::jsonb);
