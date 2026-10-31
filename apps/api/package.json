@@ -1,0 +1,20 @@
+{
+  "name": "@lild/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "build": "bun run --bun tsc -p tsconfig.json",
+    "start": "bun dist/index.js",
+    "typecheck": "bun run --bun tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@lild/contracts": "workspace:*",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.5"
+  }
+}
