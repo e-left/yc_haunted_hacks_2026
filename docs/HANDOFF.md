@@ -24,6 +24,10 @@ Restart the relay after a connect script creates a new key. Then in Claude Code 
 30 inches."* Each agent has its own key and `client_id` (`claude-agent`, `codex-agent`);
 the `.env` layout is in `docs/PHASES.md` (Phase 4).
 
+**Verified:** real Codex and Claude Code sessions have completed this round trip. The
+transcripts, matching relay logs, and the "what counts as success" rule are in
+[`docs/VERIFICATION.md`](VERIFICATION.md).
+
 ## Your integration point: the `Pipeline` trait
 
 `backend/src/pipeline.rs`:
