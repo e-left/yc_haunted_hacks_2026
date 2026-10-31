@@ -15,23 +15,29 @@ checked out, run, and tested on its own (`git checkout v0.1.0`).
 | 8 | `v0.8.0` | **Catalog, audit, and merchant admin.** | FR-7, FR-8 |
 | 9 | `v0.9.0` | **Demo script** covering acceptance criteria 1–9. | Demo |
 
-## Phase 1: how to test it
+## Workflow: gate before every phase
+
+Before starting phase N, run the regression gate. It must pass:
 
 ```bash
-cd backend
-cargo test                                   # all tests
-cargo test --test phase1_relay_api           # only Phase 1
-
-# run the server manually
-cargo run --bin keygen -- demo-agent         # prints a key + LILD_API_KEYS line
-LILD_API_KEYS='demo-agent:<hash>' cargo run --bin lild-backend
-
-curl -s localhost:8080/v1/health
-curl -s -X POST localhost:8080/v1/requests \
-  -H "Authorization: Bearer <key>" -H "Idempotency-Key: demo-1" \
-  -H 'content-type: application/json' \
-  -d '{"question":"Which in-stock shirts have a body length under 30 inches?"}'
-curl -s localhost:8080/v1/requests/<request_id> -H "Authorization: Bearer <key>"
+scripts/before-phase.sh N      # re-runs phases/phase-1 .. phase-(N-1)
 ```
 
-In Phase 1, requests stay `pending` because no worker exists yet (that's Phase 3).
+It runs `cargo build` + `cargo clippy -D warnings`, then each earlier phase's
+`phases/phase-X/check.sh`: that phase's cargo tests plus a live smoke test against a
+throwaway server with fresh keys. A phase is done when its own `check.sh` passes and
+the gate for the next phase is green. Then tag it.
+
+Every new phase X adds `phases/phase-X/check.sh` (plus `smoke.sh` if it has live behavior).
+
+## Phase 1: manual testing
+
+```bash
+phases/phase-1/server.sh    # terminal 1: creates backend/.env with demo keys on first run
+phases/phase-1/smoke.sh     # terminal 2: 8 live checks, reads keys from backend/.env
+phases/phase-1/check.sh     # or run everything automated (tests + own server + smoke)
+```
+
+`backend/.env` is gitignored. It holds `LILD_API_KEYS` (hashes, for the server) and
+`CUSTOMER_KEY` / `OTHER_KEY` (plaintext, for the agents). In Phase 1, requests stay
+`pending` because no worker exists yet (that comes in Phase 3).
