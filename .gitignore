@@ -4,3 +4,8 @@ dist/
 *.tsbuildinfo
 supabase/.branches/
 supabase/.temp/
+.env
+harness/generated/
+.durable-actors/
+*.crt
+harness/.relay-agent-token

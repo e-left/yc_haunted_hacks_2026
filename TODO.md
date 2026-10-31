@@ -1,0 +1,1 @@
+- logging on our DO requests on supabase, with incoming question, return state, e.t.c., to improve page overtime

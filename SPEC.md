@@ -14,11 +14,11 @@ The API is generated as a structured plan and a request-specific actor instance,
 
 The merchant assigns data to these mandatory access control categories. Access is denied by default until a category and applicable policy are configured.
 
-| Category | Meaning | Access rule |
-| --- | --- | --- |
-| Private | Merchant-only data, such as supplier costs. | Unavailable to customer-facing plans and execution, even if the customer or an agent requests it. The reviewing agent cannot grant access. |
-| Custodial | A customer’s own data, such as their profile and cart. | Accessible only for the authenticated customer who owns it and only within the merchant’s permitted operations and fields. Security review cannot override ownership. |
-| Reviewable | Other merchant data made eligible for customer use, such as product dimensions. | Available for the specific request only after the security review agent approves its use, subject to merchant-defined restrictions and deterministic enforcement. |
+| Category   | Meaning                                                                         | Access rule                                                                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Private    | Merchant-only data, such as supplier costs.                                     | Unavailable to customer-facing plans and execution, even if the customer or an agent requests it. The reviewing agent cannot grant access.                            |
+| Custodial  | A customer’s own data, such as their profile and cart.                          | Accessible only for the authenticated customer who owns it and only within the merchant’s permitted operations and fields. Security review cannot override ownership. |
+| Reviewable | Other merchant data made eligible for customer use, such as product dimensions. | Available for the specific request only after the security review agent approves its use, subject to merchant-defined restrictions and deterministic enforcement.     |
 
 These categories govern data used in output, filters, joins, sorting, and derived results: even filtering on a field can disclose information. The merchant decides which data is private or custodial and what reviewable data is eligible for disclosure. Unclassified data remains inaccessible. A merchant policy change is an authenticated administrative action, never an agent decision.
 
